@@ -1,0 +1,17 @@
+[package]
+name = "ruguard_native"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "ruguard_native"
+crate-type = ["cdylib"]
+
+[dependencies]
+jni = "0.21.1"
+windows-sys = { version = "0.52.0", features = [
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Threading",
+    "Win32_System_Kernel",
+    "Win32_Foundation",
+] }

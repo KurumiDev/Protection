@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Detla » Авторизация</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/img/ico_logo.png">
+
+    <link href="css/main.css" rel="stylesheet">
+    <link href="css/auth.css" rel="stylesheet">
+    <link href="vendor/aos/aos.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <script src='https://www.google.com/recaptcha/api.js' async defer ></script>
+
+      <style>
+    /* Серые кнопки только на главной */
+    .index-home .btn-getstarted,
+    .index-home .btn-getstarted:focus,
+    .index-home .hero .btn-get-started,
+    .index-home .hero .btn-get-started:focus {
+      background: linear-gradient(135deg, #3a3d46, #2a2d36);
+      color: #f5f5f5;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85);
+    }
+
+    .index-home .btn-getstarted:hover,
+    .index-home .btn-getstarted:focus:hover,
+    .index-home .hero .btn-get-started:hover,
+    .index-home .hero .btn-get-started:focus:hover {
+      background: linear-gradient(135deg, #454955, #32353f);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.95);
+    }
+
+    /* Сообщения об ошибке в модалке – не красные */
+    .index-home #result,
+    .index-home #registerResult {
+      color: #dddddd !important;
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.4) !important;
+    }
+
+    /* Скролл-ап на главной в серых тонах */
+    .index-home .scroll-top {
+      background-color: #3a3d46;
+    }
+
+    .index-home .scroll-top:hover {
+      background-color: #4a4e58;
+    }
+
+    /* Соц. иконки в футере на главной без красного */
+    .index-home .footer .social-links a {
+      background-color: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #e0e0e0;
+    }
+
+    .index-home .footer .social-links a:hover {
+      background-color: #3a3d46;
+      color: #ffffff;
+    }
+  </style>
+
+    <script>
+        $(document).ready(function(){
+            $("#authForm").submit(function(event){
+                event.preventDefault();
+                var username = $('input[name="username"]').val();
+                var password = $('input[name="password"]').val();
+                var url = "http://localhost:1000/auth/login?username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password);
+                
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    contentType: "application/x-www-form-urlencoded",
+                    success: function(response){
+                        if (response.Success) {
+                            localStorage.setItem('token', response.Success);
+                            $("#result").css("color", "green");
+                            $("#result").css("text-shadow", "0 0 12px rgba(0, 255, 0, 0.9)");
+                            $("#result").html("Успешно");
+                            setTimeout(function(){
+                                window.location.href = "cabinet.html";
+                            }, 1000);
+                        } else {
+                            var errorMessage = "Ошибка авторизации";
+                            for (var key in response) {
+                                if (key !== "Success") {
+                                    errorMessage = response[key];
+                                    break;
+                                }
+                            }
+                            $("#result").css("color", "red");
+                            $("#result").css("text-shadow", "0 0 12px rgba(255, 0, 0, 0.9)");
+                            $("#result").html(errorMessage);
+                        }
+                    },
+                    error: function(xhr, status, error){
+                        var errorMessage = "Ошибка авторизации";
+                        if (xhr.responseJSON) {
+                            for (var key in xhr.responseJSON) {
+                                if (key !== "Success") {
+                                    errorMessage = xhr.responseJSON[key];
+                                    break;
+                                }
+                            }
+                        } else if (xhr.responseText) {
+                            try {
+                                var response = JSON.parse(xhr.responseText);
+                                for (var key in response) {
+                                    if (key !== "Success") {
+                                        errorMessage = response[key];
+                                        break;
+                                    }
+                                }
+                            } catch(e) {
+                                errorMessage = xhr.responseText || "Неизвестная ошибка";
+                            }
+                        }
+                        $("#result").css("color", "red");
+                        $("#result").css("text-shadow", "0 0 12px rgba(255, 0, 0, 0.9)");
+                        $("#result").html(errorMessage);
+                    }
+                });
+            });
+        });
+    </script>
+
+</head>
+<body class="index-page">
+
+<header><div>
+
+<header id="header" class="header  fixed-top ">
+    <div class="container-xl d-flex align-items-center">
+
+        <a href="index.html" class="logo d-flex align-items-center me-auto">
+            <img src="img/logo.png" alt="">
+            <h1>Wissed</h1>
+        </a>
+
+        <nav id="navmenu" class="navmenu" >
+            <ul>
+                <li><a href="/">Главная</a></li>
+
+
+                <li></li>
+
+
+                <li><a href="#footer">Документы</a></li>
+            </ul>
+            <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
+
+
+
+        
+
+
+
+        <a class="btn-getstarted flex-md-shrink-0" style="margin-left: 30px; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-backdrop="static" data-bs-keyboard="false">Войти</a>
+    </div>
+</header>
+</div></header>
+
+
+<div class="customContainer" style="margin-top: -15px;">
+    <div class="form">
+        <div class="form-content">
+            <div style="text-align: center;">
+                <img src="img/logo.png" width="80px"> </img>
+                <div class="titleText">Войти в аккаунт</div>
+            </div>
+
+            <form id="authForm" method="post">
+                <div class="field input-field">
+                    <input name="username" type="text" placeholder="Введите e-mail или login" required>
+                </div>
+
+                <div class="field input-field">
+                    <input type="password" name="password" placeholder="Введите пароль" required>
+                </div>
+
+                <div style="text-align: center; font-size: 15px;" class="mt-2">
+                    <div id="result"></div>
+                </div>
+
+                <div style="display: flex; justify-content: center;">
+                    <a href="register.html" style="margin-top: 34px;"><span class="bi bi-person"> </span>Зарегистрировать аккаунт</a>
+                    <button class="btn btn-getstarted mt-4" style="margin-left: 30px;">Войти <span class="bi bi-arrow-right-circle" style="margin-left: 5px;"> </span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+<footer style="margin-top: 40px;"><div>
+
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>
+<script src="js/main.js"></script>

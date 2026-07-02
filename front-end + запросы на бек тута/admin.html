@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ панель</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+        }
+        .tab.active {
+            border-bottom: 2px solid #007bff;
+            color: #007bff;
+        }
+        .search-box {
+            margin-bottom: 20px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .users-table, .keys-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .users-table th, .users-table td,
+        .keys-table th, .keys-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .users-table th, .keys-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        .btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        .btn-edit {
+            background: #28a745;
+            color: white;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-copy {
+            background: #6c757d;
+            color: white;
+            padding: 3px 8px;
+            font-size: 11px;
+        }
+        .export-section {
+            margin-bottom: 15px;
+        }
+        .export-section button {
+            padding: 8px 15px;
+        }
+        .pagination {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+        }
+        .pagination button.active {
+            background: #007bff;
+            color: white;
+        }
+        .create-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 3px;
+        }
+        .create-section input {
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .message {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 3px;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            min-width: 300px;
+        }
+        .modal-content h3 {
+            margin-bottom: 15px;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+        .access-denied {
+            text-align: center;
+            padding: 50px;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="loading">Загрузка...</div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:1000';
+        let state = {
+            isAdmin: false,
+            loading: true,
+            users: [],
+            keys: [],
+            promos: [],
+            selectedKeys: [],
+            activeTab: 'users',
+            searchTerm: '',
+            currentPage: 1,
+            message: '',
+            editingUser: null,
+            usersPerPage: 10
+        };
+
+        async function checkAdmin() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    state.loading = false;
+                    render();
+                    return;
+                }
+
+                const response = await fetch(`${API_URL}/user/getAdmin`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (response.ok) {
+                    state.isAdmin = true;
+                    await loadUsers();
+                    await loadKeys();
+                    await loadPromos();
+                }
+            } catch (error) {
+                console.error('Ошибка проверки админа:', error);
+            } finally {
+                state.loading = false;
+                render();
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/admin/get/getUserList`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (response.ok) {
+                    state.users = await response.json();
+                    render();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки пользователей:', error);
+            }
+        }
+
+        async function loadKeys() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/admin/get/getKeysList`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (response.ok) {
+                    state.keys = await response.json();
+                    render();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки ключей:', error);
+            }
+        }
+
+        async function loadPromos() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/admin/get/getPromoList`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (response.ok) {
+                    state.promos = await response.json();
+                    render();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки промокодов:', error);
+            }
+        }
+
+        async function createKey() {
+            const days = document.getElementById('keyDays').value;
+            if (!days) {
+                showMessage('Укажите количество дней', 'error');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/admin/create/createKeys?days=${days}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const keyValue = data.Success || data.value || JSON.stringify(data);
+                    showMessage(`Ключ создан: ${keyValue}`, 'success');
+                    document.getElementById('keyDays').value = '';
+                    await loadKeys();
+                }
+            } catch (error) {
+                showMessage('Ошибка создания ключа', 'error');
+            }
+        }
+
+        async function createPromo() {
+            const promo = document.getElementById('promoName').value;
+            const discount = document.getElementById('promoDiscount').value;
+            const days = document.getElementById('promoDays').value;
+            const activationOut = document.getElementById('promoActivations').value;
+
+            if (!promo || !discount || !days || !activationOut) {
+                showMessage('Заполните все поля', 'error');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/admin/create/createPromo?promo=${promo}&discount=${discount}&days=${days}&activation_out=${activationOut}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showMessage(data.Success || 'Промокод создан', 'success');
+                    document.getElementById('promoName').value = '';
+                    document.getElementById('promoDiscount').value = '';
+                    document.getElementById('promoDays').value = '';
+                    document.getElementById('promoActivations').value = '';
+                    await loadPromos();
+                } else {
+                    showMessage('Ошибка создания промокода', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка создания промокода', 'error');
+            }
+        }
+
+        async function createSubscription(userId) {
+            const days = document.getElementById('subDays').value;
+            if (!days) {
+                showMessage('Укажите количество дней', 'error');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/admin/create/createSub?id=${userId}&days=${days}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showMessage(data.Success || 'Подписка выдана', 'success');
+                    closeModal();
+                    await loadUsers();
+                }
+            } catch (error) {
+                showMessage('Ошибка выдачи подписки', 'error');
+            }
+        }
+
+        async function banUser(userId, username) {
+            if (!confirm(`Вы уверены, что хотите заблокировать пользователя ${username}?`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/admin/read/banned?id=${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showMessage(data.Success || 'Пользователь заблокирован', 'success');
+                    await loadUsers();
+                } else {
+                    showMessage('Ошибка блокировки пользователя', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка блокировки пользователя', 'error');
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showMessage('Скопировано в буфер обмена', 'success');
+            }).catch(() => {
+                showMessage('Ошибка копирования', 'error');
+            });
+        }
+
+        function toggleKeySelection(keyId) {
+            const index = state.selectedKeys.indexOf(keyId);
+            if (index > -1) {
+                state.selectedKeys.splice(index, 1);
+            } else {
+                state.selectedKeys.push(keyId);
+            }
+            render();
+        }
+
+        function toggleAllKeys() {
+            if (state.selectedKeys.length === state.keys.length) {
+                state.selectedKeys = [];
+            } else {
+                state.selectedKeys = state.keys.map(key => key.id);
+            }
+            render();
+        }
+
+        function exportSelectedKeys() {
+            if (state.selectedKeys.length === 0) {
+                showMessage('Выберите ключи для экспорта', 'error');
+                return;
+            }
+
+            const selectedKeysData = state.keys
+                .filter(key => state.selectedKeys.includes(key.id))
+                .map(key => key.value)
+                .join('\n');
+
+            const blob = new Blob([selectedKeysData], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `keys_${new Date().getTime()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showMessage(`Экспортировано ${state.selectedKeys.length} ключей`, 'success');
+        }
+
+        async function deleteKey(keyValue) {
+            if (!confirm(`Вы уверены, что хотите удалить ключ ${keyValue}?`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/admin/read/deleteKeys?keys=${encodeURIComponent(keyValue)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showMessage(data.Success || 'Ключ удален', 'success');
+                    await loadKeys();
+                } else {
+                    showMessage('Ошибка удаления ключа', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка удаления ключа', 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            state.message = { text, type };
+            render();
+            setTimeout(() => {
+                state.message = '';
+                render();
+            }, 5000);
+        }
+
+        function openEditModal(user) {
+            state.editingUser = user;
+            render();
+        }
+
+        function closeModal() {
+            state.editingUser = null;
+            render();
+        }
+
+        function getFilteredUsers() {
+            return state.users.filter(user => 
+                user.username.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
+                user.email.toLowerCase().includes(state.searchTerm.toLowerCase())
+            );
+        }
+
+        function getPaginatedUsers() {
+            const filtered = getFilteredUsers();
+            const start = (state.currentPage - 1) * state.usersPerPage;
+            const end = start + state.usersPerPage;
+            return filtered.slice(start, end);
+        }
+
+        function getTotalPages() {
+            return Math.ceil(getFilteredUsers().length / state.usersPerPage);
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+
+            if (state.loading) {
+                app.innerHTML = '<div class="loading">Загрузка...</div>';
+                return;
+            }
+
+            if (!state.isAdmin) {
+                app.innerHTML = '<div class="access-denied"><h2>Доступ запрещен</h2><p>У вас нет прав администратора</p></div>';
+                return;
+            }
+
+            const messageHtml = state.message ? `<div class="message ${state.message.type}">${state.message.text}</div>` : '';
+
+            const usersTab = state.activeTab === 'users' ? `
+                <div class="search-box">
+                    <input type="text" placeholder="Поиск по имени или email..." value="${state.searchTerm}" 
+                        onkeyup="state.searchTerm = this.value; state.currentPage = 1; render();">
+                </div>
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Имя</th>
+                            <th>Email</th>
+                            <th>Роль</th>
+                            <th>HWID</th>
+                            <th>Регистрация</th>
+                            <th>Последний вход</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${getPaginatedUsers().map(user => `
+                            <tr>
+                                <td>${user.id}</td>
+                                <td>${user.username}</td>
+                                <td>${user.email}</td>
+                                <td>${user.role}</td>
+                                <td>${user.hwid || '-'}</td>
+                                <td>${user.registrationDate}</td>
+                                <td>${user.lastLogin}</td>
+                                <td>
+                                    <button class="btn btn-edit" onclick="openEditModal(${JSON.stringify(user).replace(/"/g, '&quot;')})">Выдать подписку</button>
+                                    <button class="btn btn-danger" onclick="banUser(${user.id}, '${user.username}')">Заблокировать</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    ${Array.from({length: getTotalPages()}, (_, i) => i + 1).map(page => `
+                        <button class="${page === state.currentPage ? 'active' : ''}" 
+                            onclick="state.currentPage = ${page}; render();">${page}</button>
+                    `).join('')}
+                </div>
+            ` : '';
+
+            const keysTab = state.activeTab === 'keys' ? `
+                <div class="create-section">
+                    <h3>Создать ключ</h3>
+                    <input type="number" id="keyDays" placeholder="Количество дней" min="1">
+                    <button class="btn btn-primary" onclick="createKey()">Создать</button>
+                </div>
+                ${state.keys.length > 0 ? `
+                    <div class="export-section">
+                        <button class="btn btn-primary" onclick="exportSelectedKeys()">Экспортировать выбранные (${state.selectedKeys.length})</button>
+                    </div>
+                ` : ''}
+                <table class="keys-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" ${state.selectedKeys.length === state.keys.length && state.keys.length > 0 ? 'checked' : ''} onchange="toggleAllKeys()"></th>
+                            <th>ID</th>
+                            <th>Ключ</th>
+                            <th>Дней</th>
+                            <th>Использован</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${state.keys.map(key => `
+                            <tr>
+                                <td><input type="checkbox" ${state.selectedKeys.includes(key.id) ? 'checked' : ''} onchange="toggleKeySelection(${key.id})"></td>
+                                <td>${key.id || '-'}</td>
+                                <td>${key.value || key.key || '-'}</td>
+                                <td>${key.days || '-'}</td>
+                                <td>${key.used === 1 ? 'Да' : 'Нет'}</td>
+                                <td>
+                                    <button class="btn btn-copy" onclick="copyToClipboard('${key.value || key.key}')">Копировать</button>
+                                    <button class="btn btn-danger" onclick="deleteKey('${key.value || key.key}')">Удалить</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '';
+
+            const promosTab = state.activeTab === 'promos' ? `
+                <div class="create-section">
+                    <h3>Создать промокод</h3>
+                    <input type="text" id="promoName" placeholder="Название промокода">
+                    <input type="number" id="promoDiscount" placeholder="Скидка (%)" min="0" max="100">
+                    <input type="number" id="promoDays" placeholder="Срок действия (дней)" min="1">
+                    <input type="number" id="promoActivations" placeholder="Макс. активаций" min="1">
+                    <button class="btn btn-primary" onclick="createPromo()">Создать</button>
+                </div>
+                <table class="keys-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Промокод</th>
+                            <th>Скидка</th>
+                            <th>Активаций</th>
+                            <th>Макс. активаций</th>
+                            <th>Дата истечения</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${state.promos.map(promo => `
+                            <tr>
+                                <td>${promo.id || '-'}</td>
+                                <td>${promo.value || promo.promo || '-'}</td>
+                                <td>${promo.discount || '-'}%</td>
+                                <td>${promo.activations || 0}</td>
+                                <td>${promo.activations_out || promo.activation_out || '-'}</td>
+                                <td>${promo.out_date || '-'}</td>
+                                <td><button class="btn btn-copy" onclick="copyToClipboard('${promo.value || promo.promo}')">Копировать</button></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '';
+
+            const modal = state.editingUser ? `
+                <div class="modal active">
+                    <div class="modal-content">
+                        <h3>Выдать подписку</h3>
+                        <p>Пользователь: ${state.editingUser.username}</p>
+                        <input type="number" id="subDays" placeholder="Количество дней" min="1">
+                        <div class="modal-buttons">
+                            <button class="btn btn-primary" onclick="createSubscription(${state.editingUser.id})">Выдать</button>
+                            <button class="btn" onclick="closeModal()">Отмена</button>
+                        </div>
+                    </div>
+                </div>
+            ` : '';
+
+            app.innerHTML = `
+                <div class="container">
+                    <h1>Админ панель</h1>
+                    ${messageHtml}
+                    <div class="tabs">
+                        <button class="tab ${state.activeTab === 'users' ? 'active' : ''}" 
+                            onclick="state.activeTab = 'users'; render();">Пользователи</button>
+                        <button class="tab ${state.activeTab === 'keys' ? 'active' : ''}" 
+                            onclick="state.activeTab = 'keys'; render();">Ключи</button>
+                        <button class="tab ${state.activeTab === 'promos' ? 'active' : ''}" 
+                            onclick="state.activeTab = 'promos'; render();">Промокоды</button>
+                    </div>
+                    ${usersTab}
+                    ${keysTab}
+                    ${promosTab}
+                </div>
+                ${modal}
+            `;
+        }
+
+        checkAdmin();
+    </script>
+</body>
+</html>

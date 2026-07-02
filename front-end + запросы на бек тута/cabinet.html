@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wissed » Личный кабинет</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/img/ico_logo.png">
+
+    <link href="css/main.css" rel="stylesheet">
+    <link href="vendor/aos/aos.css" rel="stylesheet">
+    <link href="vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        * {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 9% auto 5%;
+        }
+
+        /* Профиль */
+        .profile-header {
+            color: #f5f5f5;
+            padding: 30px;
+            border-radius: 24px;
+            position: relative;
+            background: radial-gradient(circle at top, #2a2d36 0, #17181f 55%, #111219 100%);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .profile-header img {
+            border-radius: 18px;
+            margin-bottom: 15px;
+            transition: transform 0.25s ease-in-out, box-shadow 0.25s ease-in-out;
+            box-shadow: 0 14px 35px rgba(0, 0, 0, 0.6);
+        }
+        .profile-header img:hover {
+            transform: translateY(-3px) scale(1.04);
+            box-shadow: 0 20px 55px rgba(0, 0, 0, 0.75);
+        }
+        .profile-header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            letter-spacing: 0.03em;
+        }
+        .profile-header p {
+            margin: 0;
+            font-size: 15px;
+            color: #b9bec7;
+        }
+
+        /* Табы */
+        .nav-tabs {
+            margin-bottom: 22px;
+            border-bottom: none;
+            margin-top: 24px;
+            background: rgba(4, 4, 6, 0.88);
+            border-radius: 999px;
+            padding: 3px 4px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(18px);
+        }
+        .nav-tabs .nav-link {
+            position: relative;
+            color: #b5b8c4;
+            border: none;
+            padding: 9px 22px;
+            margin: 2px 4px;
+            background: transparent;
+            border-radius: 999px;
+            font-size: 14px;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            transition:
+                background-color 0.18s ease-in-out,
+                color 0.18s ease-in-out,
+                transform 0.15s ease-in-out,
+                box-shadow 0.18s ease-in-out;
+        }
+        .nav-tabs .nav-link.active {
+            background: radial-gradient(circle at top, #ffffff18 0, #2a2d36 40%, #14161c 100%);
+            color: #ffffff;
+            box-shadow:
+                0 0 20px rgba(255, 255, 255, 0.16),
+                0 10px 26px rgba(0, 0, 0, 0.9);
+            transform: translateY(-1px);
+        }
+        .nav-tabs .nav-link:focus,
+        .nav-tabs .nav-link:focus-visible {
+            outline: none;
+            box-shadow: none;
+        }
+        .nav-tabs .nav-link:hover {
+            color: #f5f5f5;
+            background-color: rgba(52, 56, 68, 0.9);
+            transform: translateY(-1px);
+            box-shadow:
+                0 0 16px rgba(255, 255, 255, 0.18),
+                0 8px 22px rgba(0, 0, 0, 0.85);
+        }
+
+        .tab-content {
+            border-radius: 20px;
+        }
+        .tab-content h3 {
+            color: #d0d2d8;
+        }
+        .tab-content p, .tab-content ul, .tab-content li, .tab-content form {
+            color: #c2c4cb;
+        }
+
+        /* Карточки данных */
+        .data-card {
+            border-radius: 16px;
+            padding: 20px 22px;
+            margin-bottom: 18px;
+            transition: transform 0.22s ease-in-out, box-shadow 0.22s ease-in-out, border-color 0.22s ease-in-out;
+            background: linear-gradient(135deg, #191b20, #14151a);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .data-card:hover {
+            transform: translateY(-3px);
+            box-shadow:
+                0 0 20px rgba(255, 255, 255, 0.18),
+                0 16px 40px rgba(0, 0, 0, 0.9);
+            border-color: rgba(255, 255, 255, 0.28);
+        }
+
+        /* Карточки товаров (Покупка клиента) */
+        .purchase-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 18px;
+            padding: 18px 18px 16px;
+            background: #14151b;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            isolation: isolate;
+        }
+        /* Размытая "большая" фотка на фоне всей карточки */
+        .purchase-card::before {
+            content: "";
+            position: absolute;
+            inset: -12px;
+            background-image: var(--bg-img);
+            background-size: cover;
+            background-position: center;
+            filter: blur(18px);
+            transform: scale(1.12);
+            opacity: 0.85;
+            z-index: -2;
+            transition: transform 0.35s ease, opacity 0.35s ease;
+        }
+        /* Тёмный слой поверх размытой фотки для читаемости текста */
+        .purchase-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 55%),
+                        linear-gradient(to bottom, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.95));
+            z-index: -1;
+            opacity: 1;
+        }
+        .purchase-card:hover::before {
+            transform: scale(1.17);
+            opacity: 1;
+        }
+        .purchase-card img {
+            display: block;
+            margin: 0 auto 10px;
+            border-radius: 14px;
+            filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.95));
+            transition: transform 0.25s ease, filter 0.25s ease;
+            position: relative;
+            z-index: 1;
+        }
+        .purchase-card:hover img {
+            transform: translateY(-3px) scale(1.03);
+            filter: drop-shadow(0 22px 46px rgba(0, 0, 0, 1));
+        }
+        .purchase-card .card-title {
+            font-size: 16px;
+            margin-bottom: 6px;
+            position: relative;
+            z-index: 1;
+        }
+        .purchase-card .card-text {
+            font-size: 13px;
+            color: #a5acb9 !important;
+            position: relative;
+            z-index: 1;
+        }
+        .purchase-card p span {
+            color: #ffffff;
+        }
+        .purchase-card .btn-getstarted {
+            margin-top: 4px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            box-shadow: none !important;
+        }
+        .purchase-card .card-content {
+            position: relative;
+            z-index: 1;
+        }
+        .data-card h4 {
+            font-size: 19px;
+            margin-bottom: 8px;
+            color: #eceff4;
+        }
+        .data-card p {
+            font-size: 14px;
+            color: #8f96a3;
+            margin-bottom: 5px;
+        }
+        .data-card i {
+            font-size: 22px;
+            margin-right: 8px;
+            color: #e81e2d;
+        }
+
+        /* Кнопки */
+        .btn-container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .btn-download,
+        .btn-getstarted,
+        .btn-success {
+            padding: 6px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #e81e2d, #a1141f);
+            color: #ffffff !important;
+            border: none;
+            box-shadow: 0 10px 24px rgba(232, 30, 45, 0.6);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+        }
+        .btn-download:hover,
+        .btn-getstarted:hover,
+        .btn-success:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.05);
+            box-shadow: 0 14px 30px rgba(232, 30, 45, 0.75);
+        }
+
+        /* Формы */
+        .activation-key-form, .change-password-form, .fromStyle {
+            margin-top: 20px;
+            padding: 24px 24px 20px;
+            border-radius: 18px;
+            background: radial-gradient(circle at top left, #262933 0, #15171d 55%, #101117 100%);
+            box-shadow: 0 14px 38px rgba(0, 0, 0, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .activation-key-form h4, .change-password-form h4, .fromStyle h4 {
+            font-size: 20px;
+            color: #f0f2f7;
+        }
+
+        .form-label {
+            color: #a9aebe;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .form-control {
+            margin-bottom: 15px;
+            color: #ffffff;
+            outline: none;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(6, 7, 10, 0.85);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 15px;
+        }
+        .form-control:focus {
+            background: rgba(8, 9, 12, 0.95);
+            color: #ffffff;
+            border-radius: 10px;
+            border-color: rgba(232, 30, 45, 0.75);
+            box-shadow: 0 0 0 1px rgba(232, 30, 45, 0.5);
+        }
+
+        .card-body {
+            transition: transform 0.22s ease-in-out, box-shadow 0.22s ease-in-out;
+            background: linear-gradient(135deg, #191b20, #14151a);
+            border-radius: 16px;
+        }
+        .card-body:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .activation-key-form input::placeholder,
+        .change-password-form input::placeholder,
+        .fromStyle input::placeholder {
+            color: #797f8b;
+        }
+
+        /* Кнопки в блоке "Дополнительно" — более спокойные тёмные */
+        #settings-content .activation-key-form button,
+        #settings-content .change-password-form button,
+        #settings-content .fromStyle button {
+            width: 220px;
+            padding: 6px;
+            font-size: 15px;
+            background: linear-gradient(135deg, #343842, #1f2229);
+            border: none;
+            border-radius: 999px;
+            color: #f5f5f5;
+            cursor: pointer;
+            transition: background-color 0.25s ease, transform 0.18s ease, box-shadow 0.18s ease;
+            font-family: "Montserrat", sans-serif;
+            font-weight: 600;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8);
+        }
+
+        #settings-content .activation-key-form button:hover,
+        #settings-content .change-password-form button:hover,
+        #settings-content .fromStyle button:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, #3f4451, #252830);
+            box-shadow:
+                0 0 18px rgba(255, 255, 255, 0.12),
+                0 10px 26px rgba(0, 0, 0, 0.95);
+        }
+
+        .activation-key-form .form-group,
+        .change-password-form .form-group,
+        .fromStyle .form-group {
+            margin-bottom: 18px;
+        }
+
+        input[type=file]::file-selector-button {
+            margin-left: 1px;
+            border-radius: 8px;
+            border: none;
+            background: #262832;
+            color: #e5e5e5;
+            padding: 6px 14px;
+            cursor: pointer;
+        }
+        input[type=file]::file-selector-button:hover {
+            background: #30323e;
+        }
+
+    </style>
+</head>
+<body class="index-page">
+<header><div>
+
+<header id="header" class="header  fixed-top ">
+    <div class="container-xl d-flex align-items-center">
+
+        <a href="index.html" class="logo d-flex align-items-center me-auto">
+            <img src="img/logo.png" alt="">
+            <h1>Wissed</h1>
+        </a>
+
+        <nav id="navmenu" class="navmenu" >
+            <ul>
+                <li><a href="/">Главная</a></li>
+
+
+                <li><a  href="api/Loader">Скачать лаунчер</a></li>
+
+
+                <li><a href="#footer">Документы</a></li>
+            </ul>
+            <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
+
+
+
+        <a class="flex-md-shrink-0 btn-logout" style="margin-left: 30px; border-radius: 4px" href="#" id="logout-btn">Выйти</a>
+
+
+
+        
+    </div>
+</header>
+</div></header>
+
+
+<div class="container" data-aos="fade-out">
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-11">
+
+            <div>
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview-content" type="button" role="tab" aria-controls="overview-content" aria-selected="true">Аккаунт</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="purchase-tab" data-bs-toggle="tab" data-bs-target="#purchase-content" type="button" role="tab" aria-controls="purchase-content" aria-selected="false">Покупка клиента</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-content" type="button" role="tab" aria-controls="settings-content" aria-selected="false">Дополнительно</button>
+                </li>
+                
+            </ul>
+            </div>
+
+        </div>
+
+    <div class="row gy-5 gy-lg-0" >
+        <div class="col-12 col-lg-6" id="hiddenDiv" data-aos="fade-right">
+
+
+            <div class="profile-header mt-5 mb-5">
+                <img src="img/logo.png" width="100px">
+                <h1 id="profile-username">Wissed</h1>
+                <p id="profile-email">Email: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="cba0b9aea5afaea78bacbeaab9afe5b9be">[email&#160;protected]</a></p>
+                 <p id="profile-id">UID: 24877</p>
+            </div>
+
+
+
+            <div class="data-card">
+                <h4>
+                    <i class="bi bi-shield-check"></i>
+                    Статус учётной записи
+                </h4>
+                
+
+                <div>
+                    <p></p>
+                    <div class="status-container" id="subscription-status">
+                        <p style="color: #dc3545; text-shadow: 0 0 16px rgba(220, 53, 69, 0.7);">Подписка отсутствует!</p>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+        <div class="col-12 col-lg-6" data-aos="fade-left" data-aos-delay="100" id="sideDiv">
+
+
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active" id="overview-content" role="tabpanel" aria-labelledby="overview-tab">
+                    <h3>Данные</h3>
+
+                    <div class="data-card">
+                        <h4>
+                            <i class="bi bi-calendar3"></i>
+                            Дата регистрации
+                        </h4>
+                        <p id="profile-regdate">16.11.2024 23:35</p>
+                    </div>
+
+                    <div class="data-card">
+                        <h4>
+                            <i class="bi bi-person-circle"></i>
+                            Логин
+                        </h4>
+                        <p id="profile-login">KrendelGuard</p>
+                    </div>
+
+                    <div class="data-card">
+                        <h4>
+                            <i class="bi bi-award"></i>
+                            Роль
+                        </h4>
+                        <p id="profile-role">Пользователь</p>
+                    </div>
+
+                    <div class="data-card">
+                        <h4>
+                            <i class="bi bi-laptop"></i>
+                            HWID
+                        </h4>
+                        <p id="profile-hwid">Неизвестный</p>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="purchase-content" role="tabpanel" aria-labelledby="purchase-tab">
+
+                    <div class="text-center">
+                        <h1 class="mb-4 display-6 text-white fw-bold mt-5 mb-5">Наши продукты</h1>
+                    </div>
+
+                    <div class="row" style="text-align: left;" data-aos="fade-left">
+
+                        <tbody>
+
+                        <tr>
+
+                            <div class="col-md-4 mb-4">
+                                <div>
+                                    <div class="card-body text-white purchase-card" style="--bg-img: url('img/plus.png')">
+                                        <img src="img/plus.png" width="185px">
+                                        <div class="card-content">
+                                            <h5 class="card-title">Wissed+ (Plus) месяц</h5>
+                                            <p class="card-text" style="width: 100%; font-size: 13px; color: gray; font-weight: 400;">С этим дополнением будет доступно большей функций.</p>
+                                            <p>Цена: <span>250</span>₽</p>
+                                            <a href="/checkout?id=1" class="btn btn-getstarted">Купить</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </tr>
+
+                        <tr>
+
+                            <div class="col-md-4 mb-4">
+                                <div>
+                                    <div class="card-body text-white purchase-card" style="--bg-img: url('img/lifetime.png')">
+                                        <img src="img/lifetime.png" width="185px">
+                                        <div class="card-content">
+                                            <h5 class="card-title">Wissed навсегда</h5>
+                                            <p class="card-text" style="width: 100%; font-size: 13px; color: gray; font-weight: 400;">Вы получаете клиент абсолютно навсегда и все обновления.</p>
+                                            <p>Цена: <span>549</span>₽</p>
+                                            <a href="/checkout?id=2" class="btn btn-getstarted">Купить</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </tr>
+
+                        <tr>
+
+                            <div class="col-md-4 mb-4">
+                                <div>
+                                    <div class="card-body text-white purchase-card" style="--bg-img: url('img/1month.png')">
+                                        <img src="img/1month.png" width="185px">
+                                        <div class="card-content">
+                                            <h5 class="card-title">Wissed месяц</h5>
+                                            <p class="card-text" style="width: 100%; font-size: 13px; color: gray; font-weight: 400;">Вы получаете клиент всего на 30 дней и обновления клиента.</p>
+                                            <p>Цена: <span>349</span>₽</p>
+                                            <a href="/checkout?id=3" class="btn btn-getstarted">Купить</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </tr>
+
+                        <tr>
+
+                            <div class="col-md-4 mb-4">
+                                <div>
+                                    <div class="card-body text-white purchase-card" style="--bg-img: url('img/hwid.png')">
+                                        <img src="img/hwid.png" width="185px">
+                                        <div class="card-content">
+                                            <h5 class="card-title">Сброс HWID</h5>
+                                            <p class="card-text" style="width: 100%; font-size: 13px; color: gray; font-weight: 400;">Вы сможете запуститься с нового персонального компьютера в клиент.</p>
+                                            <p>Цена: <span>250</span>₽</p>
+                                            <a href="/checkout?id=4" class="btn btn-getstarted">Купить</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </tr>
+                        </tbody>
+                    </div>
+
+                </div>
+
+                <div class="tab-pane fade" id="settings-content" role="tabpanel" aria-labelledby="settings-tab">
+                    <h3>Параметры</h3>
+
+                    <div class="activation-key-form formStyle">
+                        <h4>Активация продукта</h4>
+                        <form id="activate-from">
+                            <div class="form-group">
+                                <label for="activation-key" class="form-label">Введите код активации</label>
+                                <input type="text" class="form-control" name="key" id="activation-key" placeholder="Код активации">
+                                <div id="activate_resoult" class="mt-2"></div>
+                            </div>
+                            <button type="submit" class="btn btn-getstarted">Активировать</button>
+                        </form>
+                    </div>
+
+
+
+
+            
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+    </div>
+
+</div>
+<a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/main.js"></script>
+<script src="vendor/aos/aos.js"></script>
+
+<script>
+    $(document).on('click', '#logout-btn', function(e) {
+        e.preventDefault();
+        localStorage.removeItem('token');
+        window.location.href = 'login.html';
+    });
+
+    $(document).ready(function() {
+        var token = localStorage.getItem('token');
+        
+        if (!token) {
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        $.ajax({
+            type: "POST",
+            url: "http://localhost:1000/user/getMyProfile",
+            contentType: "application/x-www-form-urlencoded",
+            headers: {
+                "Authorization": "Bearer " + token
+            },
+            success: function(response) {
+                if (response.Username) {
+                    $('#profile-username').text(response.Username);
+                    $('#profile-login').text(response.Username);
+                }
+                
+                if (response.Email) {
+                    $('#profile-email').html('Email: ' + response.Email);
+                }
+                
+                if (response.id) {
+                    $('#profile-id').text('UID: ' + response.id);
+                }
+                
+                if (response.regdate) {
+                    var date = new Date(response.regdate);
+                    var formattedDate = date.toLocaleDateString('ru-RU', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric' 
+                    });
+                    $('#profile-regdate').text(formattedDate);
+                }
+                
+                if (response.role) {
+                    var roleText = response.role;
+                    if (roleText === 'GUEST') {
+                        roleText = 'Гость';
+                    } else if (roleText === 'USER') {
+                        roleText = 'Пользователь';
+                    } else if (roleText === 'ADMIN') {
+                        roleText = 'Администратор';
+                    }
+                    $('#profile-role').text(roleText);
+                }
+                
+                if (response.hwid) {
+                    $('#profile-hwid').text(response.hwid);
+                }
+            },
+            error: function(xhr, status, error) {
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            }
+        });
+
+        $.ajax({
+            type: "POST",
+            url: "http://localhost:1000/user/getSub",
+            contentType: "application/x-www-form-urlencoded",
+            headers: {
+                "Authorization": "Bearer " + token
+            },
+            success: function(response) {
+                if (response.entdatesub && response.outdatesub) {
+                    var entDate = new Date(response.entdatesub);
+                    var outDate = new Date(response.outdatesub);
+                    var formattedEntDate = entDate.toLocaleDateString('ru-RU', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric' 
+                    });
+                    var formattedOutDate = outDate.toLocaleDateString('ru-RU', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric' 
+                    });
+                    
+                    $('#subscription-status').html(
+                        '<p style="color: #28a745; text-shadow: 0 0 16px rgba(40, 167, 69, 0.7);">Подписка активна!</p>' +
+                        '<p style="color: #8b949e; font-size: 14px;">Начало: ' + formattedEntDate + '</p>' +
+                        '<p style="color: #8b949e; font-size: 14px;">Окончание: ' + formattedOutDate + '</p>'
+                    );
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#subscription-status').html('<p style="color: #dc3545; text-shadow: 0 0 16px rgba(220, 53, 69, 0.7);">Подписка отсутствует!</p>');
+            }
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        function handleTabChange() {
+            const activeTab = document.querySelector('.nav-tabs .nav-link.active');
+
+            const activeTabId = activeTab ? activeTab.getAttribute('id') : '';
+
+            const hiddenDiv = document.getElementById('hiddenDiv');
+            const sideDiv = document.getElementById('sideDiv');
+
+            if (activeTabId === 'purchase-tab' || activeTabId === 'admin-tab') {
+                if (hiddenDiv) {
+                    hiddenDiv.style.display = 'none';
+                    sideDiv.classList.remove('col-lg-6');
+                }
+            } else {
+                if (hiddenDiv) {
+                    hiddenDiv.style.display = 'block';
+                    sideDiv.classList.add('col-lg-6');
+                }
+            }
+        }
+        const tabs = document.querySelectorAll('.nav-tabs .nav-link');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', handleTabChange);
+        });
+        handleTabChange();
+    });
+
+    const selectTexwork = document.getElementById('selectTexwork');
+    if (selectTexwork) {
+        selectTexwork.addEventListener('change', function() {
+            var selectedValue = this.value;
+            const texWork = document.getElementById('texWork');
+            if (texWork) {
+                texWork.value = selectedValue;
+            }
+        });
+    }
+
+    const infoPromoForm = $("#getInfoPromo");
+    if (infoPromoForm.length) {
+        infoPromoForm.submit(function (event) {
+            event.preventDefault();
+            $.ajax({
+                type: "POST",
+                url: "infoPromo",
+                data: $(this).serialize(),
+                success: function (response) {
+                    $("#getInfoPromoResult").html(response);
+                }
+            });
+        });
+    }
+    const giveRoleForm = $("#roleSet");
+    if (giveRoleForm.length) {
+        giveRoleForm.submit(function (event) {
+            event.preventDefault();
+            $.ajax({
+                type: "POST",
+                url: "/giveRole",
+                data: $(this).serialize(),
+                success: function (response) {
+                    $("#roleSetResult").html(response);
+                }
+            });
+        });
+    }
+
+    $(document).ready(function () {
+        const texworkForm = $("#texworkID");
+        if (texworkForm.length) {
+            texworkForm.submit(function (event) {
+                event.preventDefault();
+                $.ajax({
+                    type: "POST",
+                    url: "/texworks",
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        $("#texWorkResult").html(response);
+                    }
+                });
+            });
+        }
+
+        const subRemoveForm = $("#subRemove");
+        if (subRemoveForm.length) {
+            subRemoveForm.submit(function (event) {
+                event.preventDefault();
+                $.ajax({
+                    type: "POST",
+                    url: "removeSub",
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        $("#subRemoveResult").html(response);
+                    }
+                });
+            });
+        }
+
+        const generateKeysForm = $("#generateKeys");
+        if (generateKeysForm.length) {
+            generateKeysForm.submit(function (event) {
+                event.preventDefault();
+                $.ajax({
+                    type: "POST",
+                    url: "/generateKeys",
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        $("#generetedkeys textarea").val(response);
+                    },
+                    error: function () {
+                        alert("Ошибка при генерации ключей.");
+                    }
+                });
+            });
+        }
+
+
+
+        const resetpassDiv = $("#resetPass");
+        if (resetpassDiv.length) {
+            resetpassDiv.submit(function (event) {
+                event.preventDefault();
+                $.ajax({
+                    type: "POST",
+                    url: "/resetPass",
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        $("#resetPassResult").html(response);
+                    }
+                });
+            });
+        }
+
+        const resetHWIDForm = $("#resetHWID");
+        if (resetHWIDForm.length) {
+            resetHWIDForm.submit(function (event) {
+                event.preventDefault();
+                $.ajax({
+                    type: "POST",
+                    url: "/resetHWID",
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        $("#resetIDResult").html(response);
+                    }
+                });
+            });
+        }
+
+
+
+        const givePlus = $("#givePlus");
+        if (givePlus.length) {
+            givePlus.submit(function (event) {
+                event.preventDefault();
+                $.ajax({
+                    type: "POST",
+                    url: "/givePlus",
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        $("#givePlusResult").html(response);
+                    }
+                });
+            });
+        }
+
+
+        const cleanPlus = $("#cleanPlus");
+        if (cleanPlus.length) {
+            cleanPlus.submit(function (event) {
+                event.preventDefault();
+                $.ajax({
+                    type: "POST",
+                    url: "/cleanPlus",
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        $("#cleanPlusReult").html(response);
+                    }
+                });
+            });
+        }
+
+
+        const giveProductForm = $("#giveProduct");
+        if (giveProductForm.length) {
+            giveProductForm.submit(function (event) {
+                event.preventDefault();
+                $.ajax({
+                    type: "POST",
+                    url: "/giveProduct",
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        $("#giveProductResult").html(response);
+                    }
+                });
+            });
+        }
+
+
+
+        const activateForm = $("#activate-from");
+        if (activateForm.length) {
+            activateForm.submit(function (event) {
+                event.preventDefault();
+
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const keyValue = $("#activation-key").val().trim();
+                if (!keyValue) {
+                    $("#activate_resoult").html('<p class="text-danger">Введите ключ активации.</p>');
+                    return;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    url: "http://localhost:1000/user/activeKey?value=" + encodeURIComponent(keyValue),
+                    contentType: "application/x-www-form-urlencoded",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    },
+                    success: function (response) {
+                        const msg = response && response.Success
+                            ? response.Success
+                            : "Ключ успешно активирован!";
+                        $("#activate_resoult").html('<p class="text-success">' + msg + '</p>');
+                    },
+                    error: function (xhr) {
+                        let msg = "Ошибка активации ключа.";
+
+                        if (xhr.responseJSON && xhr.responseJSON.Error) {
+                            msg = xhr.responseJSON.Error;
+                        } else if (xhr.status === 403) {
+                            msg = "Ключ уже использован или недействителен.";
+                        }
+
+                        $("#activate_resoult").html('<p class="text-danger">' + msg + '</p>');
+                    }
+                });
+            });
+        }
+
+        const promoCreateForm = $("#promoCreate");
+        if (promoCreateForm.length) {
+            promoCreateForm.submit(function (event) {
+                event.preventDefault();
+                $.ajax({
+                    type: "POST",
+                    url: "/createPromo",
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        $("#promoResult").html(response);
+                    }
+                });
+            });
+        }
+        const changePasswordForm = $("#change_password_form");
+        if (changePasswordForm.length) {
+            changePasswordForm.submit(function (event) {
+                event.preventDefault();
+                $.ajax({
+                    type: "POST",
+                    url: "api/change_password",
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        if (response !== "OK") {
+                            $("#result").html(response);
+                        } else {
+                            $("#result").html('<p class="text-success">Пароль успешно обновлен!</p>');
+                        }
+                    }
+                });
+            });
+        }
+
+        const uploadForm = document.getElementById('uploadForm');
+        if (uploadForm) {
+            uploadForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                var formData = new FormData(uploadForm);
+                var xhr = new XMLHttpRequest();
+
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        var percentComplete = (e.loaded / e.total) * 100;
+                        var progressBar = document.getElementById('progressBar');
+                        if (progressBar) {
+                            progressBar.style.display = 'block';
+                            progressBar.value = percentComplete;
+                        }
+                    }
+                }, false);
+
+                xhr.addEventListener('load', function() {
+                    var uploadResult = document.getElementById('uploadResult');
+                    if (uploadResult) {
+                        uploadResult.style.color = 'green';
+                        uploadResult.innerText = "Файл успешно загружен!";
+                    }
+                    var progressBar = document.getElementById('progressBar');
+                    if (progressBar) {
+                        progressBar.style.display = 'none'; // Скрываем процессбар после загрузки
+                    }
+                });
+
+                xhr.addEventListener('error', function() {
+                    var uploadResult = document.getElementById('uploadResult');
+                    if (uploadResult) {
+                        uploadResult.innerText = "Произошла ошибка при загрузке файла.";
+                    }
+                    var progressBar = document.getElementById('progressBar');
+                    if (progressBar) {
+                        progressBar.style.display = 'none';
+                    }
+                });
+
+                xhr.open('post', uploadForm.action, true);
+                xhr.send(formData);
+            });
+        }
+
+        const uploadFormJQuery = $("#uploadForm");
+        if (uploadFormJQuery.length) {
+            uploadFormJQuery.submit(function (event) {
+                event.preventDefault();
+                var formData = new FormData(this);
+
+                $.ajax({
+                    type: "post",
+                    url: "/api/uploadPost",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        if (response !== "OK") {
+                            $("#uploadResult").html(response);
+                        } else {
+                            $("#uploadResult").html('<p class="text-success">Обновление успешно залито, подождите 30 секунд и можно будет заходить с лоадера!</p>');
+                        }
+                    }
+                });
+            });
+        }
+    });
+
+</script>
+<footer><div>
+
+<footer id="footer" class="footer">
+    <div class="container footer-top">
+        <div class="row gy-4">
+            <div class="col-lg-4 col-md-6 footer-about" style="margin-top: 0px;">
+                <a href="/" class="d-flex align-items-center">
+
+                    <img src="img/logo.png" style="margin-left: -10px;" width="50px;">
+
+                    <span>Wissed</span>
+                </a>
+                <div class="footer-contact">
+                    <p>Наш продукт не связан с MojangAB</p>
+                    <p>все средства идут на развитие проекта.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-2 col-md-3 footer-links">
+                <h4>Навигация</h4>
+                <ul>
+                    <li><i class="bi bi-dot"></i> <a href="/">Главная</a></li>
+                     <li><i class="bi bi-dot"></i> <a href="/#faq">Товары</a></li>
+                     <li><i class="bi bi-dot"></i> <a href="/#alt-features">Наши качества</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-2 col-md-3 footer-links">
+                <h4>Документы</h4>
+                <ul>
+                    <li><i class="bi bi-dot"></i> <a href="/eula">Пользовательское соглашение</a></li>
+                    <li><i class="bi bi-dot"></i> <a href="/privacy_policy">Обработка данных</a></li>
+                  </ul>
+            </div>
+
+            <div class="col-lg-4 col-md-12">
+                <h4>Наши социальные сети</h4>
+                <p>Здесь мы собрали все наши официальные социальные сети, мы будем очень рады вашей подписке.</p>
+                <div class="social-links d-flex">
+                    <a href="https://www.youtube.com/@dezz_kryt" target="_blank"><i class="bi bi-youtube"></i></a>
+                    <a href="https://t.me/dlcformine" target="_blank"><i class="bi bi-telegram"></i></a>
+                    <a href="https://dsc.gg/deltaclient" target="_blank"><i class="bi bi-discord"></i></a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <div class="container copyright text-center mt-4">
+        <p>© <span>Copyright</span> <img src="img/logo.png" width="40px" style="margin: -5px"> <strong>Wissed</strong ></p>
+    </div>
+
+</footer>
+</div></footer>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delta » Регистрация</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/img/ico_logo.png">
+
+    <link href="css/main.css" rel="stylesheet">
+    <link href="css/auth.css" rel="stylesheet">
+    <link href="vendor/aos/aos.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <script src='https://www.google.com/recaptcha/api.js' async defer ></script>
+
+    <script>
+        $(document).ready(function(){
+            $("#registerForm").submit(function(event){
+                event.preventDefault();
+                $.ajax({
+                    type: "POST",
+                    url: "http://localhost:1000/auth/register",
+                    data: $(this).serialize(),
+                    success: function(response){
+                        $("#result").css("color", "green");
+                        $("#result").css("text-shadow", "0 0 12px rgba(0, 255, 0, 0.9)");
+                        $("#result").html("Удачно");
+                        setTimeout(function(){
+                            window.location.href = "login.html";
+                        }, 1000);
+                    },
+                    error: function(xhr, status, error){
+                        $("#result").css("color", "red");
+                        $("#result").css("text-shadow", "0 0 12px rgba(255, 0, 0, 0.9)");
+                        $("#result").html("Не удачно");
+                    }
+                });
+            });
+        });
+    </script>
+
+
+</head>
+<body class="index-page">
+<header><div>
+
+<header id="header" class="header  fixed-top ">
+    <div class="container-xl d-flex align-items-center">
+
+        <a href="index.html" class="logo d-flex align-items-center me-auto">
+            <img src="img/logo.png" alt="">
+            <h1>Wissend</h1>
+        </a>
+
+        <nav id="navmenu" class="navmenu" >
+            <ul>
+                <li><a href="index.html">Главная</a></li>
+
+
+                <li></li>
+
+
+                <li><a href="#footer">Документы</a></li>
+            </ul>
+            <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
+
+
+
+        
+
+
+
+        <a class="btn-getstarted flex-md-shrink-0" style="margin-left: 30px; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-backdrop="static" data-bs-keyboard="false">Войти</a>
+    </div>
+</header>
+</div></header>
+
+ <div class="customContainer" style="margin-top: -15px;">
+    <div class="form signup">
+        <div class="form-content">
+            <div style="text-align: center;">
+                <img src="img/logo.png" width="80px"> </img>
+                <div class="titleText">Создание аккаунта</div>
+            </div>
+
+            <form id="registerForm" method="post">
+
+                <div class="field input-field">
+                    <input type="email" id="email" placeholder="Введите e-mail"  required name="email" value="">
+                </div>
+
+                <div class="field input-field">
+                    <input type="text" id="username" placeholder="Придумайте login"  required name="username" value="">
+                </div>
+
+                <div class="field input-field">
+                    <input type="password" id="password" placeholder="Придумайте пароль" required name="password" value="">
+                </div>
+
+                <div style="text-align: center; font-size: 15px;" class="mt-2">
+                    <div id="result"></div>
+                </div>
+
+                <style>
+                    .text-xs-center {
+                        text-align: center;
+                    }
+
+                    .g-recaptcha {
+                        display: inline-block;
+                        position: relative;
+                        top: -10px;
+
+                    }
+                </style>
+
+
+
+                <div style="display: flex; justify-content: center;">
+                    <a href="login.html" style="margin-top: 34px;"><span class="bi bi-person"> </span>Уже есть аккаунт?</a>
+                    <button class="btn btn-getstarted mt-4" style="margin-left: 30px;">Регистрация <span class="bi bi-arrow-right-circle" style="margin-left: 5px;"> </span></button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+<footer style="margin-top: 40px;"><div>
+
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>
+<script src="js/main.js"></script>

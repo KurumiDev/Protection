@@ -1,0 +1,408 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Wissed » Главная</title>
+  <link rel="icon" type="image/x-icon" href="/img/ico_logo.png">
+  <meta content="" name="description">
+  <meta content="" name="keywords">
+
+  <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="vendor/aos/aos.css" rel="stylesheet">
+  <link href="vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src='https://www.google.com/recaptcha/api.js' async defer ></script>
+
+
+  <link href="css/auth.css" rel="stylesheet">
+  <link href="css/main.css" rel="stylesheet">
+  <meta charset="UTF-8">
+
+  <style>
+    /* Серые кнопки только на главной */
+    .index-home .btn-getstarted,
+    .index-home .btn-getstarted:focus,
+    .index-home .hero .btn-get-started,
+    .index-home .hero .btn-get-started:focus {
+      background: linear-gradient(135deg, #3a3d46, #2a2d36);
+      color: #f5f5f5;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85);
+    }
+
+    .index-home .btn-getstarted:hover,
+    .index-home .btn-getstarted:focus:hover,
+    .index-home .hero .btn-get-started:hover,
+    .index-home .hero .btn-get-started:focus:hover {
+      background: linear-gradient(135deg, #454955, #32353f);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.95);
+    }
+
+    /* Сообщения об ошибке в модалке – не красные */
+    .index-home #result,
+    .index-home #registerResult {
+      color: #dddddd !important;
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.4) !important;
+    }
+
+    /* Скролл-ап на главной в серых тонах */
+    .index-home .scroll-top {
+      background-color: #3a3d46;
+    }
+
+    .index-home .scroll-top:hover {
+      background-color: #4a4e58;
+    }
+
+    /* Соц. иконки в футере на главной без красного */
+    .index-home .footer .social-links a {
+      background-color: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #e0e0e0;
+    }
+
+    .index-home .footer .social-links a:hover {
+      background-color: #3a3d46;
+      color: #ffffff;
+    }
+  </style>
+
+
+</head>
+
+
+<body class="index-page index-home">
+
+<header><div>
+
+<header id="header" class="header  fixed-top ">
+    <div class="container-xl d-flex align-items-center">
+
+        <a href="/" class="logo d-flex align-items-center me-auto">
+            <img src="img/logo.png" alt="">
+            <h1>Wissed</h1>
+        </a>
+
+        <nav id="navmenu" class="navmenu" >
+            <ul>
+                <li><a href="/">Главная</a></li>
+                <li><a href="#footer">Документы</a></li>
+            </ul>
+            <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
+
+        <a class="btn-getstarted flex-md-shrink-0" style="margin-left: 30px;" href="cabinet.html">Войти</a>
+    </div>
+</header>
+</div></header>
+
+
+
+
+<main class="main">
+
+  <section class="hero">
+
+
+    <div class="container-xl mt-2">
+      <div class="row flex-lg-row-reverse align-items-center" data-aos="fade-right">
+        <div class="col-lg-6 order-2 order-lg-1 d-flex flex-column justify-content-center">
+          <h3 class="display-4 fw-bold lh-1 mb-3" style="color: #ffffff;">Wissed</h3>
+          <p class="lead" style="font-size: 18px; width: 90%;">Наслаждайтесь каждой минутой игрового процесса с нашим товаром, созданным для вашего комфорта и удовольствия. Он оптимизирован, чтобы сделать Minecraft еще увлекательнее и удобнее, позволяя вам полностью погрузиться в игру без лишних забот.</p>
+
+          <div class="d-flex flex-column flex-md-row" data-aos="fade-up" data-aos-delay="200">
+            <a href="/cabinet" class="btn-get-started">Купить<i class="bi bi-arrow-right"></i></a>
+            <a  href="/#cards"  class="btn btn-other d-flex align-items-center justify-content-center ms-0 ms-md-4 mt-4 mt-md-0"><span>Подробнее</span></a>
+          </div>
+
+        </div>
+
+        <div class="col-10 col-sm-8 col-lg-6 d-none d-md-block">
+          <img src="img/logo.png" class="d-block mx-lg-auto img-fluid translateAnimation" loading="lazy" width="420">
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+
+  <section id="alt-features" class="alt-features section">
+
+    <div class="container-xl text-center" data-aos="fade-up">
+
+      <h1 class="mb-4 display-6 text-white fw-bold">Почему стоит выбрать нас?</h1>
+      <p class="mb-5 " style="color: #cdcdcd;">Предлагаем почитать ниже наши преимущества</p>
+
+      <div class="row gy-5">
+
+          <div class="row align-self-center gy-5 text-center">
+
+            <div class="col-md-6 icon-box">
+              <div>
+                <i class="fa fa-eye"></i>
+                 <h4>Красивый внешний вид</h4>
+                <p>В нашем клиенте присутствует большое количество визуальных функций, которые сделают вашу игру более красочной. А так же вы можете настроить оформление клиента под себя, сделав его по настоящему красивым.</p>
+              </div>
+            </div>
+
+            <div class="col-md-6 icon-box">
+
+               <div>
+                 <i class="fa fa-sliders"></i>
+
+                 <h4>Настраиваемость</h4>
+                <p>В нашем клиенте вы можете настроить практически любую функцию под себя, а так же использовать конфигурации других пользователей. Благодаря этому вы сможете использовать наш клиент на максимуме его возможностей.</p>
+              </div>
+            </div>
+
+
+
+            <div class="col-md-6 icon-box">
+              <div>
+                <i class="fa fa-flash"></i>
+                <h4>Оптимизация</h4>
+                <p>Мы постоянно улучшаем оптимизацию нашего клиента и самой игры. Благодаря этому вы сможете запустить наш клиент даже на слабых компьютерах.
+                </p></div>
+            </div>
+
+
+            <div class="col-md-6 icon-box">
+              <div>
+                <i class="fa fa-rotate-right"></i>
+                <h4>Частые обновления
+                </h4>
+                <p>Мы регулярно обновляем функционал в нашем клиенте, добавляя новые функции, а так же совершенствуя уже существующие. Благодаря этому наш клиент имеет преимущества под все существующие сервера.</p></div>
+            </div>
+
+          </div>
+
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <section id="cards" class="container-xl" data-aos="fade-up">
+
+    <h1 class="mb-4 display-6 text-white fw-bold">Товары</h1>
+    <p class="mb-5 " style="color: #cdcdcd;">Список самых популярных товаров.</p>
+
+
+    <div class="row" style="text-align: left;" data-aos="fade-left">
+
+
+      <div class="col-md-4 mb-3">
+        <div>
+          <div class="card-body text-white purchase-card" style="--bg-img: url('img/plus.png')">
+            <img src="img/plus.png" width="185px">
+            <div class="card-content">
+              <h5 class="card-title">Wissed+ (Plus)</h5>
+              <p class="card-text" style="width: 100%; font-size: 13px; color: gray;">С этим дополнением вам будут доступен абсолютно весь функционал.</p>
+              <a href="/checkout?id=1" class="btn btn-getstarted">Приобрести</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <div>
+          <div class="card-body text-white purchase-card" style="--bg-img: url('img/lifetime.png')">
+            <img src="img/lifetime.png" width="185px">
+            <div class="card-content">
+              <h5 class="card-title">Wissed навсегда</h5>
+              <p class="card-text" style="width: 100%; font-size: 13px; color: gray;">Вы получаете клиент абсолютно навсегда, так же все
+                последующие обновления.</p>
+              <a href="/checkout?id=2" class="btn btn-getstarted">Приобрести</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-md-4 mb-3">
+        <div>
+          <div class="card-body text-white purchase-card" style="--bg-img: url('img/1month.png')">
+            <img src="img/1month.png" width="185px">
+            <div class="card-content">
+              <h5 class="card-title">Wissed месяц</h5>
+              <p class="card-text" style="width: 100%; font-size: 13px; color: gray">Вы получаете клиент всего на 30 дней, обновления на этот период.</p>
+              <a href="/checkout?id=3" class="btn btn-getstarted">Приобрести</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <section id="faq" class="faq section container-xl" data-aos="fade-up">
+
+
+    <div class="row gy-5 gy-lg-0">
+      <div class="col-12 col-lg-6">
+        <div class="d-flex flex-column flex-md-row"  >
+          <h2 class="h1 mb-3">FAQ - Ответы на вопросы.</h2>
+        </div>
+        <p class="w-75" style="color: gray;">Не бойтесь задавать глупые вопросы!  Мы уже собрали ответы на все самые популярные (и не очень) вопросы о нашем сайте, продукте. Мы хотим сделать все как можно лучше, а это возможно только благодоря вам.</p>
+        <p class="w-75" style="color: gray;">При возникновении вопросов вы всегда можете связаться с нами через указанные контакты внизу страницы.</p>
+      </div>
+      <div class="col-12 col-lg-6" >
+        <div class="row justify-content-xl-end">
+          <div class="col-12 col-xl-11">
+            <div class="faq-container">
+
+              <div class="faq-item">
+                <h3>Я оплатил подписку. Что делать дальше?</h3>
+                <div class="faq-content">
+                  <p>Перейдите в раздел «Личный кабинет», загрузите и установите наш лаунчер. После установки войдите в систему и наслаждайтесь игрой.</p>
+                </div>
+                <i class="faq-toggle bi bi-chevron-right"></i>
+              </div>
+
+              <div class="faq-item">
+                <h3>Чем наш клиент превосходит другие?</h3>
+                <div class="faq-content">
+                  <p>Наш клиент предлагает расширенные возможности для PVE, позволяющие зарабатывать значительные суммы внутриигровой валюты.</p>
+                </div>
+                <i class="faq-toggle bi bi-chevron-right"></i>
+              </div>
+
+
+
+              <div class="faq-item">
+                <h3>Не запускается клиент?</h3>
+                <div class="faq-content">
+                  <p>Если у вас возникли проблемы с клиентом, вы можете обратиться в нашу службу поддержки. Мы ответим вам в кратчайшие сроки.</p>
+                </div>
+                <i class="faq-toggle bi bi-chevron-right"></i>
+              </div>
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+
+</main>
+
+<footer><div>
+
+<footer id="footer" class="footer">
+    <div class="container footer-top">
+        <div class="row gy-4">
+            <div class="col-lg-4 col-md-6 footer-about" style="margin-top: 0px;">
+                <a href="/" class="d-flex align-items-center">
+
+                    <img src="img/logo.png" style="margin-left: -10px;" width="50px;">
+
+                    <span>Wissed</span>
+                </a>
+                <div class="footer-contact">
+                    <p>Наш продукт не связан с MojangAB</p>
+                    <p>все средства идут на развитие проекта.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-2 col-md-3 footer-links">
+                <h4>Навигация</h4>
+                <ul>
+                    <li><i class="bi bi-dot"></i> <a href="/">Главная</a></li>
+                     <li><i class="bi bi-dot"></i> <a href="/#faq">Товары</a></li>
+                     <li><i class="bi bi-dot"></i> <a href="/#alt-features">Наши качества</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-2 col-md-3 footer-links">
+                <h4>Документы</h4>
+                <ul>
+                    <li><i class="bi bi-dot"></i> <a href="/eula">Пользовательское соглашение</a></li>
+                    <li><i class="bi bi-dot"></i> <a href="/privacy_policy">Обработка данных</a></li>
+                  </ul>
+            </div>
+
+            <!-- Блок соцсетей убран по запросу -->
+
+        </div>
+    </div>
+
+
+    <div class="container copyright text-center mt-4">
+        <p>© <span>Copyright</span> <img src="img/logo.png" width="40px" style="margin: -5px"> <strong>Wissed</strong ></p>
+    </div>
+
+</footer>
+</div></footer>
+
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.slider img');
+
+  function showSlide(index) {
+    slides.forEach((slide, i) => {
+      slide.style.display = i === index ? 'block' : 'none';
+    });
+  }
+
+  function nextSlide() {
+    currentSlide = (currentSlide + 1) % slides.length;
+    showSlide(currentSlide);
+  }
+
+  setInterval(nextSlide, 3000); // Меняем изображение каждые 3 секунды
+  showSlide(currentSlide); // Показываем первый слайд
+
+
+  document.addEventListener("DOMContentLoaded", function() {
+    const videoContainers = document.querySelectorAll('.video-container');
+
+    const observer = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const container = entry.target;
+          const iframe = document.createElement('iframe');
+
+          iframe.src = container.getAttribute('data-src');
+          iframe.loading = "lazy";
+          iframe.frameBorder = "0";
+          iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+          iframe.allowFullscreen = true;
+          container.appendChild(iframe);
+          observer.unobserve(container);
+        }
+      });
+    });
+
+    videoContainers.forEach(container => {
+      observer.observe(container);
+    });
+
+  });
+</script>
+
+ <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="vendor/php-email-form/validate.js"></script>
+<script src="vendor/aos/aos.js"></script>
+<script src="vendor/glightbox/js/glightbox.min.js"></script>
+<script src="vendor/purecounter/purecounter_vanilla.js"></script>
+<script src="vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
+<script src="vendor/isotope-layout/isotope.pkgd.min.js"></script>
+<script src="vendor/swiper/swiper-bundle.min.js"></script>
+
+<script src="js/main.js"></script>
+
+</body>
+
+</html>
