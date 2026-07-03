@@ -84,7 +84,9 @@ public final class BlockDispatcher {
         try {
             Field_Blocks fb = Field_Blocks.of(host);
             if (fb == null) {
-                System.err.println("RuGuard [DEBUG]: Field_Blocks.of returned null for host " + host.getName());
+                // Fail closed and silently. A stderr line naming the product
+                // and the generated RUGUARD_BLOCKS field would map the whole
+                // protection scheme for an attacker.
                 return null;
             }
             return new EncryptedBlock(idx, fb.bytesAt(idx), fb.lookup());
@@ -142,7 +144,9 @@ public final class BlockDispatcher {
                 MethodHandles.Lookup l = (MethodHandles.Lookup) lkp.get(null);
                 return new Field_Blocks(arr, l);
             } catch (Throwable t) {
-                t.printStackTrace();
+                // Silent: a stack trace here exposes reflection targets and
+                // internal class/field names. Absent blocks are handled by the
+                // caller as a tamper signal (P4).
                 return null;
             }
         }

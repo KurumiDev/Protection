@@ -154,10 +154,6 @@ public final class RuntimeContext {
         return bos.toByteArray();
     }
 
-    private static void writeLong(java.io.OutputStream os, long v) throws java.io.IOException {
-        for (int i = 0; i < 8; i++) os.write((byte) (v >>> (56 - i * 8)));
-    }
-
     /** Zero the entropy buffers. Idempotent. */
     public void shutdown() {
         java.util.Arrays.fill(entropy, (byte) 0);

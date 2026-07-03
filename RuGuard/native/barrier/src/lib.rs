@@ -6,88 +6,145 @@ mod secret;
 
 #[no_mangle]
 pub unsafe extern "system" fn JNI_OnLoad(vm: JavaVM, _reserved: *mut std::ffi::c_void) -> jint {
-    let mut env = vm.get_env().expect("Failed to get JNI Env");
-    
+    // Registration is done through a fallible helper so that a hostile or
+    // instrumented environment never triggers a Rust panic. Panics unwind
+    // through the FFI boundary and print the panic message (and often a
+    // backtrace) to stderr — a direct leak of internal symbol names and of
+    // the fact that a protection layer exists. On any failure we return the
+    // JNI version anyway and let the Java side fall back silently (P4): the
+    // missing native entropy simply yields wrong keys and quiet failure.
+    let _ = register_all(vm);
+    JNI_VERSION_1_8
+}
+
+/// Registers every native method. Returns `None` on the first failure without
+/// ever panicking or writing to any stream.
+unsafe fn register_all(vm: JavaVM) -> Option<()> {
+    let mut env = vm.get_env().ok()?;
+
     // 1. NativeEntropy
-    let class_name_entropy = "io/ruguard/nativebridge/NativeEntropy";
-    let class_entropy = env.find_class(class_name_entropy).expect("Failed to find NativeEntropy class");
+    let class_entropy = env.find_class("io/ruguard/nativebridge/NativeEntropy").ok()?;
     let method_entropy = NativeMethod {
         name: "currentEntropy".to_string().into(),
         sig: "()[B".to_string().into(),
         fn_ptr: current_entropy_native as *mut std::ffi::c_void,
     };
-    env.register_native_methods(&class_entropy, &[method_entropy]).expect("Failed to register NativeEntropy method");
-    
+    env.register_native_methods(&class_entropy, &[method_entropy]).ok()?;
+
     // 2. NativeVM
-    let class_name_vm = "io/ruguard/nativebridge/NativeVM";
-    let class_vm = env.find_class(class_name_vm).expect("Failed to find NativeVM class");
+    let class_vm = env.find_class("io/ruguard/nativebridge/NativeVM").ok()?;
     let method_vm = NativeMethod {
         name: "executeNative".to_string().into(),
         sig: "([B[Ljava/lang/Object;II[Ljava/lang/Object;Ljava/lang/Class;)Ljava/lang/Object;".to_string().into(),
         fn_ptr: execute_native_native as *mut std::ffi::c_void,
     };
-    env.register_native_methods(&class_vm, &[method_vm]).expect("Failed to register NativeVM method");
-    
-    JNI_VERSION_1_8
+    env.register_native_methods(&class_vm, &[method_vm]).ok()?;
+
+    Some(())
 }
 
 
 unsafe extern "system" fn current_entropy_native(env: JNIEnv, _class: JClass) -> jbyteArray {
-    let debugged = run_anti_debug_checks();
-    
+    // Aggregate every anti-analysis vector into a single tamper mask. We never
+    // branch on individual detections, never log which one fired, and never
+    // signal "you were caught" — the only observable effect is that, under
+    // analysis, the returned entropy is silently and deterministically wrong,
+    // so all downstream HKDF chunk keys derive incorrectly and decryption
+    // yields plausible-but-garbage bytecode (P4). Clean environments always
+    // get the canonical MASTER_SECRET back byte-for-byte.
+    let tamper = detect_analysis();
+
     let mut entropy = secret::MASTER_SECRET;
-    
-    if debugged {
-        // Quiet failure: alter a single byte silently (P4)
-        entropy[0] ^= 0xAB;
+    if tamper != 0 {
+        // Whole-buffer, key-schedule-style corruption. Using the tamper value
+        // as a keystream seed means an attacker cannot recover MASTER_SECRET by
+        // flipping a single known bit back; every byte is mixed.
+        let mut k = tamper ^ 0x9E37_79B9_7F4A_7C15;
+        for b in entropy.iter_mut() {
+            k ^= k << 13;
+            k ^= k >> 7;
+            k ^= k << 17;
+            *b ^= (k & 0xFF) as u8;
+        }
     }
-    
-    let array = env.new_byte_array(entropy.len() as jint).unwrap();
+
+    // Fallible JNI calls: on failure return null rather than panicking. The
+    // Java side treats a null/short array as absent native entropy (P4).
+    let array = match env.new_byte_array(entropy.len() as jint) {
+        Ok(a) => a,
+        Err(_) => return std::ptr::null_mut(),
+    };
     let slice: &[i8] = std::slice::from_raw_parts(entropy.as_ptr() as *const i8, entropy.len());
-    env.set_byte_array_region(&array, 0, slice).unwrap();
-    
+    if env.set_byte_array_region(&array, 0, slice).is_err() {
+        return std::ptr::null_mut();
+    }
     array.into_raw()
 }
 
-fn run_anti_debug_checks() -> bool {
-    let mut triggers = Vec::new();
+/// Runs all anti-debug and anti-VM probes and folds the results into a single
+/// non-zero mask when any probe trips. Returns 0 on a clean environment. No
+/// side effects: no files, no stdout/stderr, no exceptions.
+fn detect_analysis() -> u64 {
+    let mut mask: u64 = 0;
+
+    // ---- Anti-debug (Win32) --------------------------------------------------
     unsafe {
         if windows_sys::Win32::System::Diagnostics::Debug::IsDebuggerPresent() != 0 {
-            triggers.push("IsDebuggerPresent");
+            mask |= 1 << 1;
         }
         let mut remote_present = 0;
         let proc = windows_sys::Win32::System::Threading::GetCurrentProcess();
-        if windows_sys::Win32::System::Diagnostics::Debug::CheckRemoteDebuggerPresent(proc, &mut remote_present) != 0 {
-            if remote_present != 0 {
-                triggers.push("CheckRemoteDebuggerPresent");
-            }
+        if windows_sys::Win32::System::Diagnostics::Debug::CheckRemoteDebuggerPresent(proc, &mut remote_present) != 0
+            && remote_present != 0
+        {
+            mask |= 1 << 2;
         }
+        // Hardware breakpoints in the debug registers.
         let mut context: windows_sys::Win32::System::Diagnostics::Debug::CONTEXT = std::mem::zeroed();
         context.ContextFlags = windows_sys::Win32::System::Diagnostics::Debug::CONTEXT_DEBUG_REGISTERS_AMD64;
         let thread = windows_sys::Win32::System::Threading::GetCurrentThread();
-        if windows_sys::Win32::System::Diagnostics::Debug::GetThreadContext(thread, &mut context) != 0 {
-            if context.Dr0 != 0 || context.Dr1 != 0 || context.Dr2 != 0 || context.Dr3 != 0 {
-                triggers.push("HardwareRegisters");
-            }
+        if windows_sys::Win32::System::Diagnostics::Debug::GetThreadContext(thread, &mut context) != 0
+            && (context.Dr0 != 0 || context.Dr1 != 0 || context.Dr2 != 0 || context.Dr3 != 0)
+        {
+            mask |= 1 << 3;
         }
     }
+
+    // ---- Timing probe (breakpoints / single-stepping) ------------------------
     let start = unsafe { std::arch::x86_64::_rdtsc() };
     let mut sum = 0u64;
-    for i in 0..500 {
+    for i in 0..500u64 {
         sum = sum.wrapping_add(i);
     }
     std::hint::black_box(sum);
     let end = unsafe { std::arch::x86_64::_rdtsc() };
-    let diff = end - start;
-    if diff > 80_000 {
-        triggers.push("RDTSC");
+    if end.wrapping_sub(start) > 80_000 {
+        mask |= 1 << 4;
     }
-    if let Ok(mut f) = std::fs::File::create("D:\\Protection\\RuGuard\\anti_debug_triggered.txt") {
-        use std::io::Write;
-        let _ = writeln!(f, "Triggers: {:?}, RDTSC diff: {}", triggers, diff);
+
+    // ---- Anti-VM (CPUID hypervisor detection) --------------------------------
+    if running_under_hypervisor() {
+        mask |= 1 << 5;
     }
-    
-    !triggers.is_empty()
+
+    mask
+}
+
+/// CPUID-based hypervisor detection. Leaf 1 ECX bit 31 is the "hypervisor
+/// present" bit set by virtually every hypervisor (VMware, VirtualBox, Hyper-V,
+/// KVM/QEMU, Xen, Parallels). We also read the hypervisor vendor leaf so that a
+/// masked present-bit still trips on a recognised vendor string.
+fn running_under_hypervisor() -> bool {
+    unsafe {
+        let leaf1 = std::arch::x86_64::__cpuid(1);
+        if (leaf1.ecx & (1 << 31)) != 0 {
+            return true;
+        }
+        // Hypervisor vendor leaf (0x40000000) returns a 12-byte vendor id in
+        // EBX/ECX/EDX on a hypervisor, all-zero on bare metal.
+        let hv = std::arch::x86_64::__cpuid(0x4000_0000);
+        (hv.ebx | hv.ecx | hv.edx) != 0
+    }
 }
 
 unsafe extern "system" fn execute_native_native(
@@ -100,10 +157,6 @@ unsafe extern "system" fn execute_native_native(
     args: jobjectArray,
     host_class: jclass,
 ) -> jobject {
-    if let Ok(mut f) = std::fs::File::create("D:\\Protection\\RuGuard\\native_vm_executed.txt") {
-        use std::io::Write;
-        let _ = writeln!(f, "YES");
-    }
     let bytecode_arr = JByteArray::from_raw(bytecode as jbyteArray);
     let constant_pool_arr = JObjectArray::from_raw(constant_pool);
     let args_arr = JObjectArray::from_raw(args);
@@ -678,8 +731,10 @@ fn execute_vm_rust<'local>(
                 return Ok(JObject::null());
             }
             _ => {
-                let msg = format!("Unsupported VM opcode: {}", std_opcode);
-                let _ = env.throw_new("java/lang/IllegalStateException", msg);
+                // Never surface the opcode number: an exception message such as
+                // "Unsupported VM opcode: 57" hands an attacker the VM's opcode
+                // space and confirms the custom interpreter. Fail closed and
+                // silently instead (P4) — the caller sees a null/void result.
                 return Ok(JObject::null());
             }
         }

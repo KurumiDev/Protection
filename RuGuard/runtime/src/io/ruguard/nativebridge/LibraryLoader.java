@@ -21,7 +21,10 @@ public final class LibraryLoader {
                 loaded = true;
                 return;
             }
-            java.io.File temp = java.io.File.createTempFile("ruguard_native_", ".dll");
+            // Neutral, randomised temp name — never embed the product/library
+            // name on disk where it advertises the protection layer.
+            java.io.File temp = java.io.File.createTempFile(
+                    "jni" + Long.toHexString(System.nanoTime() & 0xffffffffL), ".dll");
             temp.deleteOnExit();
             try (java.io.FileOutputStream out = new java.io.FileOutputStream(temp)) {
                 byte[] buf = new byte[8192];
@@ -33,7 +36,9 @@ public final class LibraryLoader {
             System.load(temp.getAbsolutePath());
             loaded = true;
         } catch (Throwable t) {
-            System.err.println("RuGuard [WARN]: Failed to load native library from resources: " + t.getMessage());
+            // Silent: a stderr warning naming the library confirms both the
+            // product and the presence of a native barrier. The runtime falls
+            // back to Java-only entropy, which quietly yields wrong keys (P4).
         }
     }
 }

@@ -90,8 +90,9 @@ public final class VMInterpreter {
                     hostClass
             );
         } catch (Throwable t) {
-            t.printStackTrace();
-            // Fallback to pure Java VM interpreter on linkage/execution failures
+            // Silent fallback to the pure-Java VM interpreter on linkage or
+            // native-execution failure. Printing the trace would reveal the
+            // native barrier and the VM payload layout.
             return execute(payload, args, hostClass);
         }
     }
