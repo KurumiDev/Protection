@@ -57,6 +57,9 @@ public final class RuguardBootstrap {
             if (loader.isProtected()) {
                 // RuntimeContext was initialised in the loader constructor.
                 RuntimeContext.current().installNativeEntropyHook();
+                // Self-protection sweep: anti-debug, anti-VM, integrity.
+                // Aborts hard with "Invalid payload" on any detection.
+                io.ruguard.runtime.AntiTamper.enforce();
             }
             String mainClassName = mainClass(loader, jarPath);
             Class<?> mainClass = loader.loadClass(mainClassName);

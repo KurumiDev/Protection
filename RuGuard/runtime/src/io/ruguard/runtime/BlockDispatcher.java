@@ -36,8 +36,14 @@ public final class BlockDispatcher {
      * is the original arg array.
      */
     public static Object dispatch(Class<?> host, int idx, Object[] args) {
+        AntiTamper.quickCheck();
         EncryptedBlock block = blockFor(host, idx);
-        if (block == null) return defaultFor(void.class);
+        if (block == null) {
+            // A guarded block that cannot be decrypted/built is a tamper
+            // signal (classloader fingerprint changed, bytes patched, etc.).
+            AntiTamper.fail(); // aborts with "Invalid payload"
+            return defaultFor(void.class);
+        }
         MethodHandle h = block.handle();
         try {
             switch (args.length) {
