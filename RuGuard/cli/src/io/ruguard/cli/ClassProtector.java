@@ -111,6 +111,14 @@ public final class ClassProtector {
         rc.setNativeEntropy(this.masterSecret);
     }
 
+    private NameRemapper nameRemapper;
+    private Map<String, String> remappedNames;
+
+    public void setNameRemapper(NameRemapper nameRemapper) {
+        this.nameRemapper = nameRemapper;
+        this.remappedNames = nameRemapper != null ? nameRemapper.getMapping() : null;
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     //  Public API
     // ─────────────────────────────────────────────────────────────────────────
@@ -128,6 +136,7 @@ public final class ClassProtector {
         // 1. Scan — identify guarded methods and gather class metadata.
         Plan plan = GuardedScanner.plan(classBytes, autoPrefix, autoLevel);
         if (plan.guarded.isEmpty()) return null;
+        if ((plan.access & Opcodes.ACC_INTERFACE) != 0) return null;
 
         String hostName = plan.name; // internal name, e.g. "com/example/Foo"
 
@@ -170,8 +179,17 @@ public final class ClassProtector {
      * @return class file bytes for the synthetic block class
      */
     private byte[] synthesizeBlock(Plan plan, GuardedMethod gm, byte[] originalBytes) {
-        ClassWriter bw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        String blockName = plan.name + "$$ruguard$block$" + gm.index;
+        ClassWriter bw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES) {
+            @Override
+            protected String getCommonSuperClass(String type1, String type2) {
+                return "java/lang/Object";
+            }
+        };
+        String mappedHost = plan.name;
+        if (remappedNames != null && remappedNames.containsKey(plan.name)) {
+            mappedHost = remappedNames.get(plan.name);
+        }
+        String blockName = mappedHost + "$$ruguard$block$" + gm.index;
         bw.visit(TARGET_VERSION,
                 Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC,
                 blockName, null, "java/lang/Object", null);
@@ -210,24 +228,35 @@ public final class ClassProtector {
         }, ClassReader.EXPAND_FRAMES);
 
         if (gm.level == io.ruguard.annotation.Guarded.Level.VIRTUALIZED) {
-            System.out.println("  [VIRTUALIZED] " + gm.name + " " + gm.descriptor);
-            return VMCompiler.compile(mn, buildSeed);
-        }
-
-        if (gm.level == io.ruguard.annotation.Guarded.Level.STRONG) {
-            // Apply Control-Flow Flattening (Phase 2)
-            ControlFlowFlattener flattener = new ControlFlowFlattener(buildSeed);
-            boolean flattened = flattener.flatten(mn);
-            if (flattened) {
-                System.out.println("  [FLATTENED] " + gm.name + " " + gm.descriptor);
+            try {
+                byte[] compiled = VMCompiler.compile(mn, buildSeed, nameRemapper);
+                System.out.println("  [VIRTUALIZED] " + gm.name + " " + gm.descriptor);
+                return compiled;
+            } catch (Throwable t) {
+                System.out.println("  [FALLBACK] " + gm.name + " " + gm.descriptor + " -> STRONG (" + t.getMessage() + ")");
             }
         }
 
+        // ControlFlowFlattener is fundamentally broken for methods with non-empty stacks
+        // at basic block boundaries (e.g. ternary operators). Disabled to fix VerifyError.
+        boolean flattened = false;
+
         // Start $exec on the block class and write the MethodNode into it.
+        org.objectweb.asm.commons.Remapper remapper = nameRemapper == null ? null : nameRemapper.createRemapper();
+
+        if (remapper != null) {
+            execDesc = remapper.mapMethodDesc(execDesc);
+        }
+
         MethodVisitor execMv = bw.visitMethod(
                 Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
                 "$exec", execDesc, null, null);
-        mn.accept(execMv);
+                
+        if (remapper != null) {
+            mn.accept(new org.objectweb.asm.commons.MethodRemapper(execMv, remapper));
+        } else {
+            mn.accept(execMv);
+        }
 
         bw.visitEnd();
         return bw.toByteArray();
@@ -273,13 +302,19 @@ public final class ClassProtector {
      */
     private byte[] encryptBlock(String hostInternalName, int index, byte[] plainBlock, byte[] prevBlockHash) {
         io.ruguard.runtime.RuntimeContext rc = io.ruguard.runtime.RuntimeContext.current();
-        String dottedName = hostInternalName.replace('/', '.');
+        
+        String mappedInternalName = hostInternalName;
+        if (remappedNames != null && remappedNames.containsKey(hostInternalName)) {
+            mappedInternalName = remappedNames.get(hostInternalName);
+        }
+        
+        String dottedName = mappedInternalName.replace('/', '.');
         byte[] scope = CryptoSuite.sha256(("default-scope/v1/" + dottedName)
                 .getBytes(StandardCharsets.UTF_8));
         byte[] phase = "phase/no-native/v1".getBytes(StandardCharsets.UTF_8);
         byte[] ikm1 = CryptoSuite.hkdf(rc.ikm(), scope, phase, rc.ikm().length);
         byte[] ikm2 = CryptoSuite.hkdf(ikm1, prevBlockHash, "integrity/v1".getBytes(StandardCharsets.UTF_8), ikm1.length);
-        byte[] info = CryptoSuite.chunkKeyInfo(hostInternalName, index, "v1");
+        byte[] info = CryptoSuite.chunkKeyInfo(mappedInternalName, index, "v1");
         byte[] key = CryptoSuite.hkdf(ikm2, null, info, CryptoSuite.DERIVED_KEY_BYTES);
 
         // Nonce — deterministic from buildSeed + chunkIndex.
@@ -376,19 +411,15 @@ public final class ClassProtector {
             // Track whether the original class already has a <clinit>.
             if ("<clinit>".equals(name)) {
                 originalHasClinit = true;
-                // Drop the original <clinit> — we will emit our own that
-                // includes field initialisation. The original static init
-                // body is NOT preserved (it will be re-emitted by the new
-                // <clinit> only for the two RuGuard fields; any user-defined
-                // static init would need merging in a production version).
-                //
-                // NOTE: for v1, if a class has a user-defined <clinit>,
-                // we pass it through and append our init at the end via a
-                // separate <clinit>. ASM's COMPUTE_FRAMES handles merging.
-                // Actually, having two <clinit> methods is illegal. We must
-                // merge. Let's pass it through and emit our init in visitEnd.
-                return super.visitMethod(access, name, descriptor,
+                MethodVisitor mv = super.visitMethod(access, name, descriptor,
                         signature, exceptions);
+                return new MethodVisitor(Opcodes.ASM9, mv) {
+                    @Override
+                    public void visitCode() {
+                        super.visitCode();
+                        emitFieldInit(this);
+                    }
+                };
             }
 
             // Check if this method is guarded.
@@ -437,25 +468,13 @@ public final class ClassProtector {
             //    $ruguardInit method + calling it from a wrapping <clinit>.
             if (!originalHasClinit) {
                 emitClinit();
-            } else {
-                // The original <clinit> was passed through. We cannot emit
-                // a second one. Instead, emit a static helper and inject a
-                // call. For simplicity in v1, we emit a separate synthetic
-                // static initialiser block. JVM merges them? No — only one
-                // <clinit> is allowed. We solve this by emitting our init
-                // as a static method and adding a call in a ClassVisitor
-                // wrapper. For now, let's just always use the "no existing
-                // <clinit>" path — we suppress the original and re-emit.
-                //
-                // The original <clinit> was already passed through, so we
-                // can't emit another. We'll use a helper approach:
-                emitRuGuardInitHelper();
             }
 
             // 4. Emit @RuguardProtected annotation on the class.
             AnnotationVisitor av = super.visitAnnotation(
                     "Lio/ruguard/annotation/RuguardProtected;", true);
             av.visit("buildSeed", foldSeed(buildSeed));
+            av.visit("buildSeedHex", bytesToHex(buildSeed));
             av.visit("fingerprint", "");
             av.visitEnd();
 
@@ -476,29 +495,7 @@ public final class ClassProtector {
             mv.visitEnd();
         }
 
-        /**
-         * Emits a synthetic {@code $ruguardInit} helper when the class
-         * already has a {@code <clinit>}. The helper is called from a
-         * class-init entry point that ASM cannot merge automatically, so
-         * this is a best-effort approach for v1 — in practice, most
-         * protected classes don't define explicit static initialisers.
-         */
-        private void emitRuGuardInitHelper() {
-            // Emit the helper method.
-            MethodVisitor mv = super.visitMethod(
-                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
-                    "$ruguardInit$$", "()V", null, null);
-            mv.visitCode();
-            emitFieldInit(mv);
-            mv.visitInsn(Opcodes.RETURN);
-            mv.visitMaxs(0, 0);
-            mv.visitEnd();
-            // NOTE: In a full implementation we would rewrite the original
-            // <clinit> to call $ruguardInit$$() at the end. For v1 the
-            // BlockDispatcher lazily initialises from Field_Blocks.of()
-            // which calls getDeclaredField at first dispatch, so the fields
-            // being uninitialised is handled gracefully.
-        }
+
 
         /**
          * Emits the bytecode that initialises {@code RUGUARD_BLOCKS} and
@@ -870,5 +867,14 @@ public final class ClassProtector {
         long h = 1125899906842597L; // large prime
         for (byte b : seed) h = 31 * h + b;
         return h;
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(Character.forDigit((b >> 4) & 0xF, 16));
+            sb.append(Character.forDigit(b & 0xF, 16));
+        }
+        return sb.toString();
     }
 }

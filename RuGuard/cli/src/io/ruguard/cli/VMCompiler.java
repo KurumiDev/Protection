@@ -17,8 +17,10 @@ public final class VMCompiler {
     /**
      * Translates a MethodNode's bytecode to the VM block payload format.
      */
-    public static byte[] compile(MethodNode mn, byte[] buildSeed) {
+    public static byte[] compile(MethodNode mn, byte[] buildSeed, NameRemapper nameRemapper) {
         int[] opcodeMap = VMInstructionShuffler.getOpcodeMap(buildSeed);
+
+        org.objectweb.asm.commons.Remapper remapper = nameRemapper == null ? null : nameRemapper.createRemapper();
 
         List<Object> constantPool = new ArrayList<>();
         Map<AbstractInsnNode, Integer> positions = new HashMap<>();
@@ -144,6 +146,13 @@ public final class VMCompiler {
                         if (val instanceof Type) {
                             val = ((Type) val).getDescriptor();
                         }
+                        if (val instanceof String && remapper != null) {
+                            if (((String) val).startsWith("L") && ((String) val).endsWith(";")) {
+                                val = remapper.mapDesc((String) val);
+                            } else if (((String) val).contains("/")) {
+                                val = remapper.mapType((String) val);
+                            }
+                        }
                         int idx = addConstant(constantPool, val);
                         dos.writeShort(idx);
                         break;
@@ -154,7 +163,10 @@ public final class VMCompiler {
                     case VMInterpreter.VM_INVOKESPECIAL:
                     case VMInterpreter.VM_INVOKEINTERFACE: {
                         MethodInsnNode minsn = (MethodInsnNode) insn;
-                        VMMethodRef ref = new VMMethodRef(minsn.owner, minsn.name, minsn.desc, minsn.itf ? 1 : 0);
+                        String owner = remapper != null ? remapper.mapType(minsn.owner) : minsn.owner;
+                        String name = remapper != null ? remapper.mapMethodName(minsn.owner, minsn.name, minsn.desc) : minsn.name;
+                        String desc = remapper != null ? remapper.mapMethodDesc(minsn.desc) : minsn.desc;
+                        VMMethodRef ref = new VMMethodRef(owner, name, desc, minsn.itf ? 1 : 0);
                         int idx = addConstant(constantPool, ref);
                         dos.writeShort(idx);
                         break;
@@ -165,7 +177,10 @@ public final class VMCompiler {
                     case VMInterpreter.VM_GETFIELD:
                     case VMInterpreter.VM_PUTFIELD: {
                         FieldInsnNode finsn = (FieldInsnNode) insn;
-                        VMFieldRef ref = new VMFieldRef(finsn.owner, finsn.name, finsn.desc);
+                        String owner = remapper != null ? remapper.mapType(finsn.owner) : finsn.owner;
+                        String name = remapper != null ? remapper.mapFieldName(finsn.owner, finsn.name, finsn.desc) : finsn.name;
+                        String desc = remapper != null ? remapper.mapDesc(finsn.desc) : finsn.desc;
+                        VMFieldRef ref = new VMFieldRef(owner, name, desc);
                         int idx = addConstant(constantPool, ref);
                         dos.writeShort(idx);
                         break;
@@ -173,19 +188,32 @@ public final class VMCompiler {
 
                     case VMInterpreter.VM_INVOKEDYNAMIC: {
                         InvokeDynamicInsnNode indy = (InvokeDynamicInsnNode) insn;
-                        VMMethodRef bsm = new VMMethodRef(indy.bsm.getOwner(), indy.bsm.getName(), indy.bsm.getDesc(), indy.bsm.getTag());
+                        String bsmOwner = remapper != null ? remapper.mapType(indy.bsm.getOwner()) : indy.bsm.getOwner();
+                        String bsmName = remapper != null ? remapper.mapMethodName(indy.bsm.getOwner(), indy.bsm.getName(), indy.bsm.getDesc()) : indy.bsm.getName();
+                        String bsmDesc = remapper != null ? remapper.mapMethodDesc(indy.bsm.getDesc()) : indy.bsm.getDesc();
+                        VMMethodRef bsm = new VMMethodRef(bsmOwner, bsmName, bsmDesc, indy.bsm.getTag());
                         Object[] bsmArgs = new Object[indy.bsmArgs.length];
                         for (int i = 0; i < indy.bsmArgs.length; i++) {
                             Object arg = indy.bsmArgs[i];
                             if (arg instanceof org.objectweb.asm.Handle) {
                                 org.objectweb.asm.Handle h = (org.objectweb.asm.Handle) arg;
-                                arg = new VMMethodRef(h.getOwner(), h.getName(), h.getDesc(), h.getTag());
+                                String hOwner = remapper != null ? remapper.mapType(h.getOwner()) : h.getOwner();
+                                String hName = remapper != null ? remapper.mapMethodName(h.getOwner(), h.getName(), h.getDesc()) : h.getName();
+                                String hDesc = remapper != null ? remapper.mapMethodDesc(h.getDesc()) : h.getDesc();
+                                arg = new VMMethodRef(hOwner, hName, hDesc, h.getTag());
                             } else if (arg instanceof Type) {
-                                arg = ((Type) arg).getDescriptor();
+                                arg = remapper != null ? remapper.mapDesc(((Type) arg).getDescriptor()) : ((Type) arg).getDescriptor();
+                            } else if (arg instanceof String && remapper != null) {
+                                if (((String) arg).startsWith("L") && ((String) arg).endsWith(";")) {
+                                    arg = remapper.mapDesc((String) arg);
+                                } else if (((String) arg).contains("/")) {
+                                    arg = remapper.mapType((String) arg);
+                                }
                             }
                             bsmArgs[i] = arg;
                         }
-                        VMInvokeDynamicRef ref = new VMInvokeDynamicRef(indy.name, indy.desc, bsm, bsmArgs);
+                        String indyDesc = remapper != null ? remapper.mapMethodDesc(indy.desc) : indy.desc;
+                        VMInvokeDynamicRef ref = new VMInvokeDynamicRef(indy.name, indyDesc, bsm, bsmArgs);
                         int idx = addConstant(constantPool, ref);
                         dos.writeShort(idx);
                         break;

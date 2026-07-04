@@ -1,0 +1,39 @@
+{
+  "accessWidener": "accesswidener",
+  "schemaVersion": 1,
+  "id": "cataclysm",
+  "version": "2.1-DEV",
+  "icon": "assets/minecraft/icon.png",
+  "name": "cataclysm",
+  "description": "Cataclysm Client",
+  "authors": [
+    "Cataclysm"
+  ],
+  "contact": {
+    "website": "https://t.me/cataclysmdlc",
+    "repo": "none"
+  },
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "code.cataclysm.Cataclysm"
+    ]
+  },
+  "mixins": [
+    "mixins.json"
+  ],
+  "depends": {
+    "fabricloader": "\u003e\u003d0.16.8",
+    "fabric": "*",
+    "minecraft": "~1.21.4"
+  },
+  "jars": [
+    {
+      "file": "META-INF/jars/netty-codec-socks-4.1.82.Final.jar"
+    },
+    {
+      "file": "META-INF/jars/netty-handler-proxy-4.1.82.Final.jar"
+    }
+  ]
+}

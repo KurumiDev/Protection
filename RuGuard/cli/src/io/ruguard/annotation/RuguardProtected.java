@@ -22,6 +22,10 @@ public @interface RuguardProtected {
      *  selection and integrity-check scheduling for this build. */
     long buildSeed();
 
+    /** Hex representation of the build seed - used for runtime context initialization
+     *  when running outside RuguardClassLoader. */
+    String buildSeedHex() default "";
+
     /** Hex representation of the encrypted-blocks fingerprint — useful for
      *  reproducible crash dumps and redteam builds. */
     String fingerprint() default "";

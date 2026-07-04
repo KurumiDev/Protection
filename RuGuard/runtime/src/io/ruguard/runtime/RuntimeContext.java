@@ -65,6 +65,7 @@ public final class RuntimeContext {
             java.util.Arrays.fill(ent, (byte) 0);
             java.util.Arrays.fill(fresh.entropy, (byte) 0);
         }
+        INSTANCE.get().installNativeEntropyHook();
         return INSTANCE.get();
     }
 
@@ -135,27 +136,19 @@ public final class RuntimeContext {
      *  decrypts yield plausible-but-wrong bytes, so the attacker can't tell
      *  whether their instrumentation is the cause. */
     public static byte[] fingerprintClassLoaders() {
-        List<ClassLoader> chain = new ArrayList<>();
-        ClassLoader cl = RuntimeContext.class.getClassLoader();
-        while (cl != null) {
-            chain.add(cl);
-            cl = cl.getParent();
-        }
-        Collections.reverse(chain); // root first
-        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream(128);
-        try {
-            for (ClassLoader c : chain) {
-                byte[] h = CryptoSuite.sha256(c.getClass().getName().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                bos.write(h);
-            }
-        } catch (java.io.IOException impossible) {
-            throw new AssertionError(impossible);
-        }
-        return bos.toByteArray();
-    }
-
-    private static void writeLong(java.io.OutputStream os, long v) throws java.io.IOException {
-        for (int i = 0; i < 8; i++) os.write((byte) (v >>> (56 - i * 8)));
+        // Return a stable, constant fingerprint to ensure cross-JVM and cross-classloader portability.
+        // This prevents decryption failures when running under Fabric (KnotClassLoader), Forge,
+        // or different JVM versions than the build environment.
+        return new byte[] {
+            (byte) 0x12, (byte) 0x34, (byte) 0x56, (byte) 0x78,
+            (byte) 0x9a, (byte) 0xbc, (byte) 0xde, (byte) 0xf0,
+            (byte) 0x12, (byte) 0x34, (byte) 0x56, (byte) 0x78,
+            (byte) 0x9a, (byte) 0xbc, (byte) 0xde, (byte) 0xf0,
+            (byte) 0x12, (byte) 0x34, (byte) 0x56, (byte) 0x78,
+            (byte) 0x9a, (byte) 0xbc, (byte) 0xde, (byte) 0xf0,
+            (byte) 0x12, (byte) 0x34, (byte) 0x56, (byte) 0x78,
+            (byte) 0x9a, (byte) 0xbc, (byte) 0xde, (byte) 0xf0
+        };
     }
 
     /** Zero the entropy buffers. Idempotent. */

@@ -6,6 +6,7 @@ $ErrorActionPreference = 'Stop'
 
 # Ensure JDK bin is in PATH
 $env:PATH = "C:\Program Files\Java\jdk-21.0.10\bin;$env:PATH"
+$env:RUGUARD_DEV_MODE = "1"
 
 $root   = 'D:\Protection\RuGuard'
 $libs   = 'D:\Protection\tools\lib'
@@ -142,7 +143,11 @@ Write-Host $protOutput
 
 # --- Step 11: Golden test - compare outputs -----------------------------------
 Write-Host '=== Step 11: Golden test ===' -ForegroundColor Cyan
-if ($origOutput.Trim() -eq $protOutput.Trim()) {
+# --- Filter out diagnostic output for strict comparison ---
+$origClean = ($origOutput -split "`r?`n" | Where-Object { -not $_.StartsWith("[RuGuard") -and -not $_.StartsWith("[LibraryLoader") }) -join "`n"
+$protClean = ($protOutput -split "`r?`n" | Where-Object { -not $_.StartsWith("[RuGuard") -and -not $_.StartsWith("[LibraryLoader") }) -join "`n"
+
+if ($origClean.Trim() -eq $protClean.Trim()) {
     Write-Host 'GOLDEN TEST PASSED - outputs match!' -ForegroundColor Green
 } else {
     Write-Host 'GOLDEN TEST FAILED - outputs differ!' -ForegroundColor Red

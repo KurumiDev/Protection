@@ -117,8 +117,9 @@ public class ProtectTool {
              JarOutputStream jos = createOutputJar(inputJar, outputPath, seed)) {
 
             Enumeration<JarEntry> entries = inputJar.entries();
-            // Pass 1: Collect classes and map names
+            // Pass 1: Collect classes and resource files
             Map<String, byte[]> classes = new HashMap<>();
+            Map<String, byte[]> resourceFiles = new HashMap<>();
             byte[] fabricJson = null;
             
             while (entries.hasMoreElements()) {
@@ -137,13 +138,7 @@ public class ProtectTool {
                     if (name.equals("fabric.mod.json")) {
                         fabricJson = data;
                     }
-                    if (existingEntries.add(name)) {
-                        JarEntry outEntry = new JarEntry(name);
-                        outEntry.setTime(entry.getTime());
-                        jos.putNextEntry(outEntry);
-                        jos.write(data);
-                        jos.closeEntry();
-                    }
+                    resourceFiles.put(name, data);
                 }
             }
             
@@ -168,6 +163,8 @@ public class ProtectTool {
             if (protectPackage != null) {
                 remapper = new NameRemapper(protectPackage, entryPoints);
                 remapper.analyze(classes);
+                remapper.dumpMappings("mappings.txt");
+                protector.setNameRemapper(remapper);
             }
 
             for (Map.Entry<String, byte[]> entry : classes.entrySet()) {
@@ -175,11 +172,19 @@ public class ProtectTool {
                 byte[] data = entry.getValue();
                 scanned++;
 
-                boolean isAutoProtected = protectPackage != null && name.startsWith(protectPackage) && !name.contains("mixin");
+                boolean isAutoProtected = protectPackage != null && name.startsWith(protectPackage);
+                boolean isMixin = isMixinClass(data, name);
+                boolean isInterface = false;
+                try {
+                    ClassReader cr = new ClassReader(data);
+                    isInterface = (cr.getAccess() & org.objectweb.asm.Opcodes.ACC_INTERFACE) != 0;
+                } catch (Exception ignored) {}
 
-                // 1. String Encryption (Apply if auto-protected)
+                boolean skipProtection = isMixin || isInterface;
+
+                // 1. String Encryption (Apply if auto-protected and not skipped)
                 boolean modified = false;
-                if (isAutoProtected) {
+                if (isAutoProtected && !skipProtection) {
                     byte[] seBytes = stringEncryptor.encrypt(data);
                     if (seBytes != null) {
                         data = seBytes;
@@ -187,8 +192,11 @@ public class ProtectTool {
                     }
                 }
 
-                // 2. Class Protection (Checks @Guarded or auto-protects based on prefix)
-                byte[] cpBytes = protector.transform(data);
+                // 2. Class Protection (Checks @Guarded or auto-protects based on prefix; skip if skipped)
+                byte[] cpBytes = null;
+                if (!skipProtection) {
+                    cpBytes = protector.transform(data);
+                }
                 boolean isProtected = false;
                 if (cpBytes != null) {
                     data = cpBytes;
@@ -208,9 +216,9 @@ public class ProtectTool {
                     data = remapper.remap(data);
                 }
 
-                // 4. Anti-Decompiler (Only apply if class has Guarded methods or is auto-protected)
-                if (isProtected || isAutoProtected) {
-                    data = antiDecompiler.apply(data);
+                // 4. Anti-Decompiler (Only apply if class has Guarded methods or is auto-protected, and not skipped)
+                if ((isProtected || isAutoProtected) && !skipProtection) {
+                    data = antiDecompiler.apply(data, false);
                 }
                 
                 String newName = name;
@@ -226,6 +234,26 @@ public class ProtectTool {
                 if (existingEntries.add(newName)) {
                     JarEntry outEntry = new JarEntry(newName);
                     // outEntry.setTime(...) omit time for stealth
+                    jos.putNextEntry(outEntry);
+                    jos.write(data);
+                    jos.closeEntry();
+                }
+            }
+            
+            // Pass 3: Process and write resource files
+            Map<String, String> mapping = (remapper != null) ? remapper.getMapping() : Collections.emptyMap();
+            for (Map.Entry<String, byte[]> entry : resourceFiles.entrySet()) {
+                String name = entry.getKey();
+                byte[] data = entry.getValue();
+                
+                if (remapper != null) {
+                    if (name.equals("fabric.mod.json")) {
+                        data = updateFabricModJson(data, mapping);
+                    }
+                }
+                
+                if (existingEntries.add(name)) {
+                    JarEntry outEntry = new JarEntry(name);
                     jos.putNextEntry(outEntry);
                     jos.write(data);
                     jos.closeEntry();
@@ -440,5 +468,107 @@ public class ProtectTool {
             }
             System.err.println("RuGuard [WARN]: ruguard_native.dll not found in expected paths or classpath!");
         }
+    }
+
+    private static byte[] updateFabricModJson(byte[] data, Map<String, String> mapping) throws Exception {
+        String json = new String(data, java.nio.charset.StandardCharsets.UTF_8);
+        
+        List<Map.Entry<String, String>> entries = new ArrayList<>();
+        for (Map.Entry<String, String> entry : mapping.entrySet()) {
+            if (!entry.getKey().contains(".")) {
+                entries.add(entry);
+            }
+        }
+        entries.sort((e1, e2) -> Integer.compare(e2.getKey().length(), e1.getKey().length()));
+        
+        for (Map.Entry<String, String> entry : entries) {
+            String oldClass = entry.getKey();
+            String newClass = entry.getValue();
+            
+            json = json.replace(oldClass.replace('/', '.'), newClass.replace('/', '.'));
+            json = json.replace(oldClass, newClass);
+        }
+        return json.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private static byte[] updateMixinsJson(byte[] data, Map<String, String> mapping) throws Exception {
+        String json = new String(data, java.nio.charset.StandardCharsets.UTF_8);
+        
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"package\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
+        if (!m.find()) return data;
+        String oldPackage = m.group(1);
+        String oldPackageSlash = oldPackage.replace('.', '/');
+        
+        json = json.replace("\"package\": \"" + oldPackage + "\"", "\"package\": \"a.b\"");
+        json = json.replace("\"package\" : \"" + oldPackage + "\"", "\"package\": \"a.b\"");
+        json = json.replace("\"package\"  : \"" + oldPackage + "\"", "\"package\": \"a.b\"");
+        
+        java.util.regex.Matcher strMatcher = java.util.regex.Pattern.compile("\"([^\"]+)\"").matcher(json);
+        StringBuilder sb = new StringBuilder();
+        int lastIdx = 0;
+        while (strMatcher.find()) {
+            sb.append(json, lastIdx, strMatcher.start());
+            String val = strMatcher.group(1);
+            String classPath = oldPackageSlash + "/" + val.replace('.', '/');
+            if (mapping.containsKey(classPath)) {
+                String newClassPath = mapping.get(classPath);
+                String newSimpleName = newClassPath.substring("a/b/".length());
+                sb.append("\"").append(newSimpleName).append("\"");
+            } else {
+                sb.append("\"").append(val).append("\"");
+            }
+            lastIdx = strMatcher.end();
+        }
+        sb.append(json.substring(lastIdx));
+        return sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private static byte[] updateRefmapJson(byte[] data, Map<String, String> mapping) throws Exception {
+        String json = new String(data, java.nio.charset.StandardCharsets.UTF_8);
+        
+        List<Map.Entry<String, String>> entries = new ArrayList<>();
+        for (Map.Entry<String, String> entry : mapping.entrySet()) {
+            if (!entry.getKey().contains(".")) {
+                entries.add(entry);
+            }
+        }
+        entries.sort((e1, e2) -> Integer.compare(e2.getKey().length(), e1.getKey().length()));
+        
+        for (Map.Entry<String, String> entry : entries) {
+            String oldClass = entry.getKey();
+            String newClass = entry.getValue();
+            
+            json = json.replace(oldClass, newClass);
+            json = json.replace(oldClass.replace('/', '.'), newClass.replace('/', '.'));
+        }
+        return json.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private static boolean isMixinClass(byte[] classBytes, String name) {
+        if (name.toLowerCase().contains("mixin")) {
+            return true;
+        }
+        try {
+            ClassReader cr = new ClassReader(classBytes);
+            ClassNode cn = new ClassNode();
+            cr.accept(cn, ClassReader.SKIP_CODE);
+            if (cn.visibleAnnotations != null) {
+                for (org.objectweb.asm.tree.AnnotationNode ann : cn.visibleAnnotations) {
+                    if (ann.desc != null && ann.desc.startsWith("Lorg/spongepowered/asm/mixin/")) {
+                        return true;
+                    }
+                }
+            }
+            if (cn.invisibleAnnotations != null) {
+                for (org.objectweb.asm.tree.AnnotationNode ann : cn.invisibleAnnotations) {
+                    if (ann.desc != null && ann.desc.startsWith("Lorg/spongepowered/asm/mixin/")) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Ignore parsing errors
+        }
+        return false;
     }
 }

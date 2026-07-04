@@ -105,6 +105,7 @@ public final class StringEncryptor {
         Label loopEnd = new Label();
 
         sd.visitLabel(loopStart);
+        sd.visitFrame(Opcodes.F_NEW, 5, new Object[]{"java/lang/String", Opcodes.INTEGER, "[B", Opcodes.INTEGER, Opcodes.INTEGER}, 0, new Object[]{});
         sd.visitVarInsn(Opcodes.ILOAD, 4);
         sd.visitVarInsn(Opcodes.ALOAD, 2);
         sd.visitInsn(Opcodes.ARRAYLENGTH);
@@ -133,6 +134,7 @@ public final class StringEncryptor {
         sd.visitJumpInsn(Opcodes.GOTO, loopStart);
 
         sd.visitLabel(loopEnd);
+        sd.visitFrame(Opcodes.F_NEW, 5, new Object[]{"java/lang/String", Opcodes.INTEGER, "[B", Opcodes.INTEGER, Opcodes.INTEGER}, 0, new Object[]{});
 
         // return new String(raw, StandardCharsets.UTF_8);
         sd.visitTypeInsn(Opcodes.NEW, "java/lang/String");

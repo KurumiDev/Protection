@@ -84,6 +84,7 @@ public final class EncryptedBlock {
                 realHandle.set(cached);
                 return cached;
             } catch (Throwable t) {
+                t.printStackTrace();
                 // P4 — degrade silently to stub.
                 MethodHandle stub = stubHandle(lookupForStub());
                 realHandle.set(stub);
@@ -139,7 +140,17 @@ public final class EncryptedBlock {
             for (java.lang.reflect.Method m : host.getDeclaredMethods()) {
                 io.ruguard.annotation.GuardedStub gs = m.getAnnotation(io.ruguard.annotation.GuardedStub.class);
                 if (gs != null && gs.blockIndex() == index) {
-                    mt = MethodType.methodType(m.getReturnType(), m.getParameterTypes());
+                    boolean isStatic = java.lang.reflect.Modifier.isStatic(m.getModifiers());
+                    Class<?>[] expectedParams;
+                    if (isStatic) {
+                        expectedParams = m.getParameterTypes();
+                    } else {
+                        Class<?>[] origParams = m.getParameterTypes();
+                        expectedParams = new Class<?>[origParams.length + 1];
+                        expectedParams[0] = Object.class;
+                        System.arraycopy(origParams, 0, expectedParams, 1, origParams.length);
+                    }
+                    mt = MethodType.methodType(m.getReturnType(), expectedParams);
                     break;
                 }
             }
@@ -220,9 +231,19 @@ public final class EncryptedBlock {
         for (java.lang.reflect.Method m : host.getDeclaredMethods()) {
             GuardedStub gs = m.getAnnotation(GuardedStub.class);
             if (gs == null || gs.blockIndex() != index) continue;
-            MethodType mt = MethodType.methodType(
-                    m.getReturnType(),
-                    Arrays.stream(m.getParameterTypes()).toArray(Class<?>[]::new));
+            
+            boolean isStatic = java.lang.reflect.Modifier.isStatic(m.getModifiers());
+            Class<?>[] expectedParams;
+            if (isStatic) {
+                expectedParams = m.getParameterTypes();
+            } else {
+                Class<?>[] origParams = m.getParameterTypes();
+                expectedParams = new Class<?>[origParams.length + 1];
+                expectedParams[0] = Object.class;
+                System.arraycopy(origParams, 0, expectedParams, 1, origParams.length);
+            }
+            MethodType mt = MethodType.methodType(m.getReturnType(), expectedParams);
+            
             for (java.lang.reflect.Method rm : hl.lookupClass().getDeclaredMethods()) {
                 if (!rm.getName().equals("$exec")) continue;
                 if (!rm.getReturnType().equals(mt.returnType())) continue;
@@ -261,7 +282,17 @@ public final class EncryptedBlock {
             for (java.lang.reflect.Method m : host.getDeclaredMethods()) {
                 GuardedStub gs = m.getAnnotation(GuardedStub.class);
                 if (gs != null && gs.blockIndex() == index) {
-                    MethodType mt = MethodType.methodType(m.getReturnType(), m.getParameterTypes());
+                    boolean isStatic = java.lang.reflect.Modifier.isStatic(m.getModifiers());
+                    Class<?>[] expectedParams;
+                    if (isStatic) {
+                        expectedParams = m.getParameterTypes();
+                    } else {
+                        Class<?>[] origParams = m.getParameterTypes();
+                        expectedParams = new Class<?>[origParams.length + 1];
+                        expectedParams[0] = Object.class;
+                        System.arraycopy(origParams, 0, expectedParams, 1, origParams.length);
+                    }
+                    MethodType mt = MethodType.methodType(m.getReturnType(), expectedParams);
                     return MethodHandles.empty(mt);
                 }
             }

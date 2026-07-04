@@ -36,8 +36,13 @@ public final class BlockDispatcher {
      * is the original arg array.
      */
     public static Object dispatch(Class<?> host, int idx, Object[] args) {
+        AntiTamper.quickCheck();
         EncryptedBlock block = blockFor(host, idx);
-        if (block == null) return defaultFor(void.class);
+        if (block == null) {
+            System.err.println("[BlockDispatcher] Failed to resolve encrypted block for class " + host.getName() + " index " + idx);
+            AntiTamper.fail(); // aborts with "Invalid payload"
+            return defaultFor(void.class);
+        }
         MethodHandle h = block.handle();
         try {
             switch (args.length) {
@@ -51,6 +56,8 @@ public final class BlockDispatcher {
                     return h.invokeWithArguments(args);
             }
         } catch (Throwable t) {
+            System.err.println("[BlockDispatcher] EXCEPTION in dispatch for " + host.getName() + " index " + idx + ": " + t);
+            t.printStackTrace();
             // P4 — silent degradation.
             return defaultFor(returnTypeOf(host, idx));
         }
@@ -78,13 +85,43 @@ public final class BlockDispatcher {
         try {
             Field_Blocks fb = Field_Blocks.of(host);
             if (fb == null) {
-                System.err.println("RuGuard [DEBUG]: Field_Blocks.of returned null for host " + host.getName());
                 return null;
             }
+
+            // Ensure RuntimeContext is initialized before decrypting
+            try {
+                RuntimeContext.current();
+            } catch (IllegalStateException e) {
+                io.ruguard.annotation.RuguardProtected rp = host.getAnnotation(io.ruguard.annotation.RuguardProtected.class);
+                if (rp != null) {
+                    String seedHex = rp.buildSeedHex();
+                    if (seedHex != null && seedHex.length() == 16) {
+                        byte[] seed = hexToBytes(seedHex);
+                        RuntimeContext.initialise(seed);
+                    } else {
+                        System.err.println("[BlockDispatcher] RuguardProtected buildSeedHex is invalid or empty for " + host.getName());
+                    }
+                } else {
+                    System.err.println("[BlockDispatcher] RuguardProtected annotation is missing for " + host.getName());
+                }
+            }
+
             return new EncryptedBlock(idx, fb.bytesAt(idx), fb.lookup());
         } catch (Throwable t) {
+            System.err.println("[BlockDispatcher] buildSlotFromClass failed for " + host.getName() + " index " + idx + ": " + t);
+            t.printStackTrace();
             return null;
         }
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        byte[] bytes = new byte[8];
+        for (int i = 0; i < 8; i++) {
+            int hi = Character.digit(hex.charAt(i * 2), 16);
+            int lo = Character.digit(hex.charAt(i * 2 + 1), 16);
+            bytes[i] = (byte) ((hi << 4) | lo);
+        }
+        return bytes;
     }
 
     private static Class<?> returnTypeOf(Class<?> host, int idx) {
@@ -136,6 +173,7 @@ public final class BlockDispatcher {
                 MethodHandles.Lookup l = (MethodHandles.Lookup) lkp.get(null);
                 return new Field_Blocks(arr, l);
             } catch (Throwable t) {
+                System.err.println("[BlockDispatcher] Field_Blocks.of failed for " + host.getName() + ": " + t);
                 t.printStackTrace();
                 return null;
             }

@@ -35,6 +35,19 @@ public final class AntiDecompiler {
      * @return transformed class bytes
      */
     public byte[] apply(byte[] classBytes) {
+        return apply(classBytes, false);
+    }
+
+    /**
+     * Applies anti-decompiler transformations to the given class.
+     * @param classBytes original class bytes
+     * @param isMixin whether the class is a Mixin class
+     * @return transformed class bytes
+     */
+    public byte[] apply(byte[] classBytes, boolean isMixin) {
+        if (isMixin) {
+            return classBytes;
+        }
         ClassReader cr = new ClassReader(classBytes);
         ClassNode cn = new ClassNode(Opcodes.ASM9);
         cr.accept(cn, ClassReader.EXPAND_FRAMES);
@@ -48,17 +61,29 @@ public final class AntiDecompiler {
         // 3. Add bogus inner class references
         injectBogusInnerClasses(cn);
 
-        // 4. For each method, inject anti-decompiler bytecode
-        for (MethodNode mn : cn.methods) {
-            if (mn.instructions == null || mn.instructions.size() == 0) continue;
-            if ("<init>".equals(mn.name) || "<clinit>".equals(mn.name)) continue;
+        // 3b. Attach a garbage custom attribute. The JVM ignores unknown
+        //     attributes, but decompilers that eagerly parse every attribute
+        //     (JD-GUI, older Procyon/CFR builds) choke on the malformed body.
+        injectBogusAttribute(cn);
 
-            injectDeadCodeSwitch(mn);
-            injectFakeExceptionHandler(mn);
-            corruptLocalVariableTable(mn);
+        // 4. For each method, inject anti-decompiler bytecode (skip for mixins to avoid corrupting stack maps/references)
+        if (!isMixin) {
+            for (MethodNode mn : cn.methods) {
+                if (mn.instructions == null || mn.instructions.size() == 0) continue;
+                if ("<init>".equals(mn.name) || "<clinit>".equals(mn.name)) continue;
+
+                injectDeadCodeSwitch(mn);
+                injectFakeExceptionHandler(mn);
+                corruptLocalVariableTable(mn);
+            }
         }
 
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES) {
+            @Override
+            protected String getCommonSuperClass(String type1, String type2) {
+                return "java/lang/Object"; // Fast fallback to avoid ClassNotFoundException
+            }
+        };
         cn.accept(cw);
         return cw.toByteArray();
     }
@@ -171,6 +196,41 @@ public final class AntiDecompiler {
             if ("this".equals(lv.name)) continue;
             // Replace with zero-width chars that look blank in decompilers
             lv.name = "\u200B\u200C\u200D\uFEFF" + randomString(2);
+        }
+    }
+
+    /**
+     * Adds an unknown class-level attribute whose body is random bytes that
+     * look like a truncated attribute table. Valid per the JVM spec (unknown
+     * attributes are silently skipped), fatal to naive decompiler parsers.
+     */
+    private void injectBogusAttribute(ClassNode cn) {
+        byte[] garbage = new byte[16 + rng.nextInt(48)];
+        rng.nextBytes(garbage);
+        if (cn.attrs == null) cn.attrs = new ArrayList<>();
+        cn.attrs.add(new BogusAttribute("Code", garbage));
+    }
+
+    /**
+     * A custom ASM attribute that emits arbitrary bytes verbatim. Named after a
+     * real attribute ("Code") but placed at class scope where it is illegal to
+     * find one — decompilers that assume "Code" implies a method body dereference
+     * a null/absent context and crash, while the JVM ignores it at class level.
+     */
+    private static final class BogusAttribute extends Attribute {
+        private final byte[] data;
+
+        BogusAttribute(String type, byte[] data) {
+            super(type);
+            this.data = data;
+        }
+
+        @Override
+        protected ByteVector write(ClassWriter classWriter, byte[] code,
+                                   int codeLength, int maxStack, int maxLocals) {
+            ByteVector bv = new ByteVector();
+            bv.putByteArray(data, 0, data.length);
+            return bv;
         }
     }
 

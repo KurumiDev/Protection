@@ -74,7 +74,11 @@ public final class GuardedScanner {
 
         @Override
         public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-            if (name.startsWith("<") || (access & Opcodes.ACC_NATIVE) != 0 || (access & Opcodes.ACC_ABSTRACT) != 0) {
+            if (name.startsWith("<") || name.startsWith("$") || 
+                (access & Opcodes.ACC_NATIVE) != 0 || 
+                (access & Opcodes.ACC_ABSTRACT) != 0 ||
+                (access & Opcodes.ACC_SYNTHETIC) != 0 ||
+                (access & Opcodes.ACC_BRIDGE) != 0) {
                 return null;
             }
             final int[] found = { -1 };
